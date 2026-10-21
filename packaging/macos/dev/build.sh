@@ -13,9 +13,9 @@ case "${1:-}" in
   --skip-build) SKIP_BUILD=1 ;;
   *) echo "Usage: $0 [--skip-build]" >&2; exit 2 ;;
 esac
-[ "$(uname -s)" = Darwin ] && [ "$(uname -m)" = arm64 ] || {
+if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
   echo 'This developer bundle requires an Apple Silicon Mac.' >&2; exit 1;
-}
+fi
 command -v cargo >/dev/null || { echo 'Rust is missing. Install Rust >= 1.95, then retry.' >&2; exit 1; }
 xcrun --find clang >/dev/null
 WORK="$DEV_ROOT/dist/dev"

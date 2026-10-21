@@ -3,9 +3,9 @@
 set -euo pipefail
 # shellcheck source=env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/env.sh"
-[ "$(uname -s)" = Darwin ] && [ "$(uname -m)" = arm64 ] || {
+if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
   echo 'An Apple Silicon Mac is required.' >&2; exit 1;
-}
+fi
 xcrun --find clang >/dev/null || {
   echo 'Install the Xcode Command Line Tools, then retry.' >&2; exit 1;
 }
