@@ -120,7 +120,13 @@ pub(crate) fn has_project_selection(s: &Session) -> std::result::Result<(), Stri
 }
 fn has_clipboard(s: &Session) -> std::result::Result<(), String> {
     has_seq(s)?;
-    if s.state.clipboard.is_empty() { Err("clipboard is empty".into()) } else { Ok(()) }
+    if s.state.effect_clipboard.is_some() {
+        has_selection(s)
+    } else if s.state.clipboard.is_empty() {
+        Err("clipboard is empty".into())
+    } else {
+        Ok(())
+    }
 }
 
 /// The ids a caller named under `many` (a list) or `one` (a single id), when the command documents
@@ -2931,6 +2937,8 @@ fn build() -> Vec<CommandSpec> {
             Ok(Value::Null)
         }),
         // ================= Effects =================
+        cmd!("effects.copy", "Copy", [], None, "{}", has_seq, crate::effect_clipboard::copy),
+        cmd!("effects.paste", "Paste", [], None, r#"{"clips":[id]?}"#, has_selection, crate::effect_clipboard::paste),
         cmd!("effects.apply", "Apply Effect", [], None, r#"{"clips":[id]?,"effect":"gaussian_blur|Gaussian Blur|…"}"#, has_seq, |s, p| {
             let name = str_p(p, "effect").ok_or_else(|| bad("effects.apply", "need `effect`"))?;
             let def = resolve_effect_name(s, p, name).ok_or_else(|| bad("effects.apply", format!("unknown effect `{name}`")))?;
@@ -3652,11 +3660,15 @@ fn copy_selection(s: &mut Session) {
             }
         }
     }
+    s.state.effect_clipboard = None;
     s.state.clipboard = clip;
     s.state.clipboard_markers = markers;
 }
 
 fn paste(s: &mut Session, insert: bool) -> Result<Value> {
+    if s.state.effect_clipboard.is_some() {
+        return crate::effect_clipboard::paste(s, &json!({}));
+    }
     let at = s.playhead();
     let clip = s.state.clipboard.clone();
     let markers = if s.state.copy_paste_sequence_markers { s.state.clipboard_markers.clone() } else { Vec::new() };

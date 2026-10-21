@@ -1082,3 +1082,96 @@ fn toggle_animation_creates_a_parameter_missing_from_an_older_instance() {
     let rot = it.effect("motion").unwrap().param("rotation").unwrap();
     assert!(rot.is_animated(), "the stopwatch is on");
 }
+
+#[test]
+fn copied_effect_snapshot_pastes_to_multiple_clips_and_undoes_together() {
+    let mut s = demo();
+    s.execute("sequence.linkedSelection", json!({"on": false})).unwrap();
+    let items = v1(&s);
+    let (a, b, c) = (items[0].id.0, items[1].id.0, items[2].id.0);
+    s.execute("effects.apply", json!({"clips": [a], "effect": "transform"})).unwrap();
+    s.execute("effects.setParam", json!({"clip": a, "effect": "transform", "param": "scale_height", "value": 175.0})).unwrap();
+    s.execute("effects.select", json!({"clip": a, "effect": "transform"})).unwrap();
+    s.execute("effects.copy", json!({})).unwrap();
+    s.execute("effects.setParam", json!({"clip": a, "effect": "transform", "param": "scale_height", "value": 110.0})).unwrap();
+    select(&mut s, &[b, c]);
+    let before = s.project.clone();
+    s.execute("edit.paste", json!({})).unwrap();
+    for id in [b, c] {
+        assert_eq!(f64_param(&clip(&s, id), "transform", "scale_height"), 175.0);
+        assert!(clip(&s, id).effect("motion").is_some());
+    }
+    s.undo().unwrap();
+    assert_eq!(s.project, before);
+    s.redo().unwrap();
+    assert_eq!(f64_param(&clip(&s, b), "transform", "scale_height"), 175.0);
+    // Last copy type wins, including an ordinary whole-clip copy after effect copy.
+    s.execute("edit.copy", json!({})).unwrap();
+    assert!(s.state.effect_clipboard.is_none());
+    assert!(!s.state.clipboard.is_empty());
+}
+
+#[test]
+fn copied_intrinsic_effect_replaces_once_and_retimes_animation() {
+    let mut s = demo();
+    let (a, b) = (v1(&s)[0].clone(), v1(&s)[2].clone());
+    let mut project = (*s.project).clone();
+    let src = project.sequence_mut(s.state.active_sequence.unwrap()).unwrap().find_item_mut(a.id).unwrap().1;
+    let scale = src.effect_mut("opacity").unwrap().param_mut("opacity").unwrap();
+    scale.put_keyframe(a.source_in, filmcraft_project::ParamValue::Float(50.0));
+    scale.put_keyframe(a.source_in + Tick(1000), filmcraft_project::ParamValue::Float(80.0));
+    s.project = std::sync::Arc::new(project);
+    s.execute("effects.select", json!({"clip": a.id.0, "effect": "opacity"})).unwrap();
+    s.execute("masks.add", json!({"clip": a.id.0, "effect": "opacity", "shape": "ellipse"})).unwrap();
+    let index = clip(&s, a.id.0).effects.iter().position(|e| e.effect == "opacity").unwrap();
+    s.execute("effects.toggleEnabled", json!({"clip": a.id.0, "index": index})).unwrap();
+    s.execute("effects.select", json!({"clip": a.id.0, "effect": "opacity"})).unwrap();
+    s.execute("effects.copy", json!({})).unwrap();
+    s.execute("effects.paste", json!({"clips": [b.id.0]})).unwrap();
+    s.execute("effects.paste", json!({"clips": [b.id.0]})).unwrap();
+    let dst = clip(&s, b.id.0);
+    assert_eq!(dst.effects.iter().filter(|e| e.effect == "opacity").count(), 1);
+    assert!(!dst.effect("opacity").unwrap().enabled);
+    assert_eq!(dst.effect("opacity").unwrap().masks, clip(&s, a.id.0).effect("opacity").unwrap().masks);
+    let keys = &dst.effect("opacity").unwrap().param("opacity").unwrap().keyframes;
+    assert_eq!(keys.len(), 2);
+    assert_eq!(keys[0].time, b.source_in);
+    assert_eq!(keys[1].time, b.source_in + Tick(1000));
+}
+
+#[test]
+fn effect_clipboard_rejects_missing_incompatible_and_locked_destinations() {
+    let mut s = demo();
+    assert!(s.execute("effects.copy", json!({})).is_err());
+    assert!(s.execute("effects.paste", json!({})).is_err());
+    let (a, b) = (v1(&s)[0].id.0, v1(&s)[2].id.0);
+    s.execute("effects.select", json!({"clip": a, "effect": "motion"})).unwrap();
+    s.execute("effects.copy", json!({})).unwrap();
+    let before = s.project.clone();
+    for params in [json!({"clips": [b, u64::MAX]}), json!({"clips": [u64::MAX]}), json!({"clips": []}), json!({"clips": [b, "bad"]}), json!({"clips": "bad"})] {
+        assert!(s.execute("effects.paste", params).is_err());
+        assert_eq!(s.project, before);
+    }
+    let audio = s.active_sequence().unwrap().audio_tracks[0].items[0].id.0;
+    assert!(s.execute("effects.paste", json!({"clips": [audio]})).is_err());
+    s.execute("timeline.setTrack", json!({"track": "V1", "locked": true})).unwrap();
+    let before = s.project.clone();
+    let err = s.execute("effects.paste", json!({"clips": [b]})).unwrap_err();
+    assert!(err.to_string().contains("locked"));
+    assert_eq!(s.project, before);
+}
+
+#[test]
+fn copied_audio_effect_targets_the_linked_audio_of_a_selected_video() {
+    let mut s = demo();
+    let (a, b) = (v1(&s)[0].clone(), v1(&s)[2].clone());
+    let audio = |s: &Session, link| s.active_sequence().unwrap().audio_tracks.iter().flat_map(|t| &t.items).find(|it| it.link == link).unwrap().id.0;
+    let (src, dst) = (audio(&s, a.link), audio(&s, b.link));
+    s.execute("effects.setParam", json!({"clip": src, "effect": "volume", "param": "level", "value": -6.0})).unwrap();
+    s.execute("effects.select", json!({"clip": src, "effect": "volume"})).unwrap();
+    s.execute("effects.copy", json!({})).unwrap();
+    let before_video = clip(&s, b.id.0);
+    s.execute("effects.paste", json!({"clips": [b.id.0]})).unwrap();
+    assert_eq!(f64_param(&clip(&s, dst), "volume", "level"), -6.0);
+    assert_eq!(clip(&s, b.id.0), before_video);
+}

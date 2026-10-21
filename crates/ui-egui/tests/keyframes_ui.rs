@@ -727,3 +727,33 @@ fn a_line_separates_added_effects_from_the_fixed_ones() {
     );
     assert!(tint[1] > blur[1], "one line, above all the added effects");
 }
+
+/// Selecting Transform owns Copy; pasting on another clip changes its effect stack only.
+#[test]
+fn copy_selected_transform_then_paste_on_another_clip() {
+    let (mut d, source) = Driver::demo();
+    d.exec("sequence.linkedSelection", json!({"on": false}));
+    let target = d.exec("sequence.inspect", json!({}))["video"][0]["items"][2]["clip"].as_u64().unwrap();
+    d.exec("effects.apply", json!({"clips": [source.id], "effect": "transform"}));
+    d.exec("effects.setParam", json!({"clip": source.id, "effect": "transform", "param": "scale_height", "value": 175.0}));
+    d.frames(3);
+    d.click("effectControls.effect.transform");
+    d.ok("ui.key", json!({"key": "Cmd+C"}));
+    d.exec("timeline.select", json!({"clips": [target]}));
+    d.ok("ui.set", json!({"focused": "Timeline"}));
+    let before = d.harness.state().session.project.clone();
+    d.ok("ui.key", json!({"key": "Cmd+V"}));
+    let app = d.harness.state();
+    let q = app.session.active_sequence().unwrap();
+    let old = before.sequence(app.session.state.active_sequence.unwrap()).unwrap();
+    assert_eq!(q.all_tracks().map(|t| t.items.len()).sum::<usize>(), old.all_tracks().map(|t| t.items.len()).sum::<usize>());
+    let copied = q.find_item(ClipId(target)).unwrap().1.effect("transform").expect("Transform pasted instead of duplicating a timeline clip");
+    assert_eq!(copied.param("scale_height").unwrap().value.as_f64(), Some(175.0));
+    d.exec("edit.undo", json!({}));
+    assert_eq!(d.harness.state().session.project, before);
+    d.exec("edit.redo", json!({}));
+    // The old Effect Controls selection must not hijack a normal Timeline Copy.
+    d.ok("ui.key", json!({"key": "Cmd+C"}));
+    assert!(d.harness.state().session.state.effect_clipboard.is_none());
+    assert!(!d.harness.state().session.state.clipboard.is_empty());
+}

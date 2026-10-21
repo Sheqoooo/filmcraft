@@ -73,3 +73,20 @@ new runtime Dock icon; no user session or Dock process was forcibly closed.
 The first automatic macOS ARM64 developer build and packaging lint succeeded on GitHub before
 this icon follow-up, and a ZIP artifact was produced:
 https://github.com/Sheqoooo/filmcraft/actions/runs/39629631477
+
+## Selected-effect clipboard (2026-10-21)
+
+Copy in Effect Controls now copies the selected effect snapshot instead of a timeline clip.
+Paste applies it to compatible selected clips in one undo step; intrinsic effects replace their
+matching built-in instance. Parameters, enabled state, masks and animation are retained, with
+keyframe offsets relative to the destination source in-point. Timeline Copy/Cut replaces the
+effect clipboard, and OS media clipboard handling retains its existing precedence.
+
+Validation: 34 engine clip-operations tests, 18 keyframe UI tests (including the real Transform
+header + Cmd+C / target selection + Cmd+V workflow), and 6 OS clipboard UI tests passed.
+The additional engine cases cover snapshot independence, multiple targets, undo/redo, intrinsic
+replacement, masks, keyframe timing, linked audio targeting and invalid/locked/incompatible targets.
+Scoped engine/UI Clippy with warnings denied, formatting, the native ARM64 developer build and
+strict bundle signature verification passed. No running app was closed or user project edited.
+The earlier workspace-wide export-test failure and incomplete wasm gate remain as described above;
+these unrelated full gates were not rerun for this change.

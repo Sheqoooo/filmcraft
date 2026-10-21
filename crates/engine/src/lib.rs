@@ -18,6 +18,7 @@ pub mod color;
 pub mod commands;
 pub mod demo;
 pub mod doc_path;
+mod effect_clipboard;
 pub mod essential_sound;
 pub mod export_tools;
 pub mod graphic_templates;
@@ -293,6 +294,9 @@ pub struct EditorState {
     /// Timeline clipboard (serialized track items with their relative track index).
     #[serde(skip)]
     pub clipboard: Vec<(TrackKind, usize, filmcraft_project::TrackItem)>,
+    /// Copied effect snapshot plus source timing; independent of later source edits.
+    #[serde(skip)]
+    pub effect_clipboard: Option<(filmcraft_project::TrackItem, usize)>,
     pub default_video_transition: String,
     pub default_audio_transition: String,
     /// Selected edit points (trim mode).

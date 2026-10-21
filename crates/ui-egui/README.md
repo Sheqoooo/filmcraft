@@ -3,6 +3,18 @@
 The egui frontend draws panels and dialogs, and dispatches project changes through the engine.
 Interactive controls keep stable automation ids regardless of the interface language.
 
+## Copying one effect
+
+Select an effect header in Effect Controls and use Copy (Cmd/Ctrl+C). Select one or more compatible
+clips and Paste (Cmd/Ctrl+V) to apply that effect snapshot, including values, animation, masks and
+enabled state, in one undo step. Animation offsets follow the destination source in-point.
+Standard effects are added; intrinsic effects replace their matching built-in instance.
+Locked destination tracks are refused. Copy in the Timeline still copies whole clips and replaces
+the effect clipboard. `effects.copy` / `effects.paste` expose the same operations to automation.
+`keyframes_ui` covers the Transform keyboard workflow, clip count, values, undo/redo and subsequent
+Timeline Copy; `clip_ops_tests` covers snapshots, multiple destinations, intrinsic animation and
+invalid/locked/incompatible destinations. `clipboard_paste_ui` checks OS media clipboard routing.
+
 ## Timeline Link / Unlink menu
 
 The clip context menu uses the same selection rule as the engine command: show Unlink only when
