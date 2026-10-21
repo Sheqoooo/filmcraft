@@ -9,6 +9,9 @@ iconography, images or other Adobe assets; open licences only; every asset attri
 
 | Asset | Author | Source | Licence |
 |---|---|---|---|
+| `assets/app-icon/filmcraft-dev-macos-512.png` | Brandon Thomas (original owl); Codex for Sheqoooo (developer variant) | `filmcraft.svg` with original teal field and DEV badge; rendered by `packaging/macos/dev/icons.cjs` | MIT OR Apache-2.0 (`assets/app-icon/LICENSE.txt`) |
+| `assets/app-icon/filmcraft-dev.icns` | Brandon Thomas (original owl); Codex for Sheqoooo (developer variant) | macOS bundle of the developer icon rendered by `packaging/macos/dev/icons.cjs` | MIT OR Apache-2.0 (`assets/app-icon/LICENSE.txt`) |
+| `packaging/macos/dev/icons.cjs` (code-drawn badge) | Codex for Sheqoooo | Original geometric DEV lettering and developer palette, applied to the licensed FilmCraft owl | MIT OR Apache-2.0 |
 | `crates/ui-egui/src/i18n/it.tsv` | FilmCraft contributors | Original work: clean-room Italian interface translations | MIT OR Apache-2.0 |
 | `crates/ui-egui/src/i18n/id.tsv` | FilmCraft contributors | Original work: clean-room Indonesian interface translations | MIT OR Apache-2.0 |
 | `crates/ui-egui/src/i18n/ko.tsv` | FilmCraft contributors | Original work: clean-room Korean interface translations | MIT OR Apache-2.0 |

@@ -1,0 +1,8 @@
+asset:        filmcraft-dev.icns
+title:        FilmCraft Dev macOS bundle icon
+author:       Brandon Thomas (original owl); Codex for Sheqoooo (developer variant)
+source:       assets/app-icon/filmcraft.svg; original teal field and DEV badge in packaging/macos/dev/icons.cjs
+license:      MIT OR Apache-2.0
+license-file: assets/app-icon/LICENSE.txt
+added:        2026-10-21 by Codex for Sheqoooo
+notes:        Derived from the openly licensed original owl. Teal background and original geometric DEV lettering distinguish the development fork. Rendered with sharp and iconutil inside the macOS icon grid; no fonts or third-party artwork added.

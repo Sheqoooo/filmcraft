@@ -6,6 +6,7 @@ keine laufenden Entwicklungsdienste und keine Terminalbefehle.
 ## Benutzung
 
 - **FilmCraft Dev.app** im Hauptordner startet den zuletzt erfolgreich gebauten Editor.
+  Das türkisfarbene Eulen-Symbol mit DEV-Markierung unterscheidet sie im Dock vom Original.
   Die App lässt sich ins Dock ziehen und auch an einen anderen Ort kopieren.
 - **FilmCraft aktualisieren.app** im Hauptordner bietet zwei Möglichkeiten:
   - **Lokal neu bauen** übernimmt den aktuellen Code dieses Arbeitsordners, einschließlich

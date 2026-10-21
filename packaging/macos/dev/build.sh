@@ -44,7 +44,7 @@ lipo "$BINARY" -verify_arch arm64
 APP="$STAGE/FilmCraft Dev.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BINARY" "$APP/Contents/MacOS/FilmCraft-bin"
-cp "$DEV_ROOT/assets/app-icon/filmcraft.icns" "$APP/Contents/Resources/FilmCraft.icns"
+cp "$DEV_ROOT/assets/app-icon/filmcraft-dev.icns" "$APP/Contents/Resources/FilmCraft.icns"
 # The launcher keeps this fork's preferences/recovery separate from the official app.
 cat > "$APP/Contents/MacOS/FilmCraft" <<'LAUNCH'
 #!/bin/bash

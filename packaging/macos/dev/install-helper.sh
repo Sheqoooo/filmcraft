@@ -17,7 +17,7 @@ PLIST="$STAGE/FilmCraft aktualisieren.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c 'Add :CFBundleIdentifier string com.sheqoooo.filmcraft.dev.updater' "$PLIST"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleIconFile FilmCraft' "$PLIST"
 /usr/libexec/PlistBuddy -c 'Delete :CFBundleIconName' "$PLIST"
-cp "$DEV_ROOT/assets/app-icon/filmcraft.icns" "$STAGE/FilmCraft aktualisieren.app/Contents/Resources/FilmCraft.icns"
+cp "$DEV_ROOT/assets/app-icon/filmcraft-dev.icns" "$STAGE/FilmCraft aktualisieren.app/Contents/Resources/FilmCraft.icns"
 # osacompile adds generic privacy descriptions; this helper only runs its build scripts.
 for key in NSAppleEventsUsageDescription NSAppleMusicUsageDescription NSCalendarsUsageDescription \
   NSCameraUsageDescription NSContactsUsageDescription NSHomeKitUsageDescription \

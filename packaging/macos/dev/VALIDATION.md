@@ -59,3 +59,17 @@ Logs:
 No Desktop shortcuts were installed.
 Start the apps from the Filmcraft project folder. Do not move the checkout without regenerating
 the updater through `FilmCraft einrichten.command`.
+
+## Developer icon follow-up
+
+The macOS developer app now uses a teal owl with an original geometric DEV badge, both in the
+bundle icon and in the embedded runtime Dock icon. The official app and standard artwork remain
+unchanged. The two new icon assets are attributed (asset check: 71 assets), and the generation
+script reuses the openly licensed original owl; its rendering tools are not runtime dependencies.
+A native rebuild, ARM64 app Clippy, formatting, asset checks and bundle signature checks passed.
+The icon was inspected visually. An already-running app needs a normal restart to display the
+new runtime Dock icon; no user session or Dock process was forcibly closed.
+
+The first automatic macOS ARM64 developer build and packaging lint succeeded on GitHub before
+this icon follow-up, and a ZIP artifact was produced:
+https://github.com/Sheqoooo/filmcraft/actions/runs/39629631477

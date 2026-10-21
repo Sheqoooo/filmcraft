@@ -58,3 +58,11 @@ The web app's `apps/filmcraft-web/web/favicon.png` (128 px) comes from the same 
 `cargo xtask ico`). To change the artwork, replace `filmcraft.svg` and `filmcraft-small.svg` with new
 exports from craftrules, then run the script. Every derived file needs its `.attribution` sidecar
 and a row in `ATTRIBUTION.md`.
+
+## Developer fork on macOS
+
+`filmcraft-dev-macos-512.png` is embedded for the runtime Dock icon, and `filmcraft-dev.icns` is
+used by the developer bundle and updater. The licensed owl is retained on a teal field with
+an original geometric DEV badge. Regenerate with `node packaging/macos/dev/icons.cjs`
+(Node + sharp, and macOS iconutil; generation only, never a runtime dependency). Standard
+FilmCraft artwork stays available unchanged. Both developer assets have attribution sidecars.
