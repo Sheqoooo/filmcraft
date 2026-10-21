@@ -65,10 +65,17 @@ impl Driver {
         v
     }
 
-    /// Right-click `clip` on the timeline and choose Link / Unlink from its menu.
-    fn menu_link(&mut self, clip: ClipId) {
+    /// Open the actual timeline context menu and read the visible Link / Unlink label.
+    fn link_menu_label(&mut self, clip: ClipId) -> String {
         self.ok("ui.click", json!({"id": format!("timeline.clip.{}", clip.0), "button": "right"}));
         self.frames(3);
+        let rows = self.ok("ui.elements", json!({"prefix": "timeline.clipMenu.clip.link"}));
+        rows.as_array().unwrap().iter().find(|row| row["id"] == "timeline.clipMenu.clip.link").unwrap()["label"].as_str().unwrap().to_owned()
+    }
+
+    /// Right-click `clip` on the timeline and choose Link / Unlink from its menu.
+    fn menu_link(&mut self, clip: ClipId) {
+        self.link_menu_label(clip);
         self.ok("ui.click", json!({"id": "timeline.clipMenu.clip.link"}));
         self.frames(3);
     }
@@ -111,4 +118,60 @@ fn unlinking_from_the_sound_keeps_the_sound_selected_and_link_keeps_both() {
     let mut both = vec![v, a];
     both.sort_by_key(|c| c.0);
     assert_eq!(d.selection(), both);
+}
+
+/// A linked pair plus an unlinked pair used to advertise Unlink although the action links them.
+#[test]
+fn mixed_link_state_menu_matches_link_action_and_undo() {
+    for (language, link_label) in [("english", "Link"), ("german", "Verknüpfen")] {
+        let mut d = Driver::new();
+        d.ok("ui.menu.invoke", json!({"id": format!("app.language.{language}")}));
+        let seq = d.app().session.active_sequence().unwrap().clone();
+        let pairs: Vec<_> = seq.video_tracks[0]
+            .items
+            .iter()
+            .filter_map(|v| {
+                let link = v.link?;
+                let a = seq.audio_tracks.iter().flat_map(|t| &t.items).find(|a| a.link == Some(link))?;
+                Some((v.id, a.id, link))
+            })
+            .take(2)
+            .collect();
+        let [(v0, a0, original_link), (v1, a1, _)] = pairs.as_slice() else { panic!("two demo pairs required") };
+        let (v0, a0, v1, a1, original_link) = (*v0, *a0, *v1, *a1, *original_link);
+        d.ok("engine.execute", json!({"command": "clip.link", "params": {"clips": [v1.0, a1.0]}}));
+        d.ok("engine.execute", json!({"command": "timeline.select", "params": {"clips": [v0.0, a0.0, v1.0, a1.0], "linked": false}}));
+        assert_eq!(d.link_menu_label(v0), link_label, "the label must describe the action for a mixed selection");
+        d.ok("ui.click", json!({"id": "timeline.clipMenu.clip.link"}));
+        d.frames(3);
+        assert_eq!(d.selection().len(), 4, "linking retains the full selection");
+        assert!(d.item(v0).link.is_some());
+        assert_eq!(d.item(v0).link, d.item(a0).link);
+        assert!(d.item(v1).link.is_some());
+        assert_eq!(d.item(v1).link, d.item(a1).link);
+        assert_ne!(d.item(v0).link, d.item(v1).link, "pairs stay independent");
+        d.ok("engine.execute", json!({"command": "edit.undo"}));
+        assert_eq!(d.item(v0).link, Some(original_link));
+        assert_eq!(d.item(a0).link, Some(original_link));
+        assert_eq!(d.item(v1).link, None);
+        assert_eq!(d.item(a1).link, None);
+    }
+}
+
+#[test]
+fn link_menu_changes_between_link_and_unlink_in_english_and_german() {
+    for (language, link_label, unlink_label) in [("english", "Link", "Unlink"), ("german", "Verknüpfen", "Verknüpfung aufheben")] {
+        let mut d = Driver::new();
+        d.ok("ui.menu.invoke", json!({"id": format!("app.language.{language}")}));
+        let (v, a) = d.linked_pair();
+        assert_eq!(d.link_menu_label(v), unlink_label);
+        d.ok("ui.click", json!({"id": "timeline.clipMenu.clip.link"}));
+        d.frames(3);
+        assert_eq!((d.item(v).link, d.item(a).link), (None, None));
+        d.ok("engine.execute", json!({"command": "timeline.select", "params": {"clips": [v.0, a.0]}}));
+        assert_eq!(d.link_menu_label(v), link_label);
+        d.ok("ui.click", json!({"id": "timeline.clipMenu.clip.link"}));
+        d.frames(3);
+        assert_eq!(d.link_menu_label(v), unlink_label);
+    }
 }

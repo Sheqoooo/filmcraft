@@ -3,6 +3,14 @@
 The egui frontend draws panels and dialogs, and dispatches project changes through the engine.
 Interactive controls keep stable automation ids regardless of the interface language.
 
+## Timeline Link / Unlink menu
+
+The clip context menu uses the same selection rule as the engine command: show Unlink only when
+all selected clips already have links. An unlinked or mixed selection shows Link (German:
+Verknüpfen), matching the action that will run. Separate video/audio pairs remain independently
+linked. `unlink_ui` covers the actual English/German menu labels, mixed selections, linking,
+undo, and dragging a picture away after unlinking.
+
 ## Transition drop previews
 
 Dragging a video or audio transition over a compatible clip shows its actual time span, the
