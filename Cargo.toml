@@ -146,3 +146,12 @@ opt-level = 3
 [profile.release]
 lto = "thin"
 codegen-units = 1
+
+# Native developer app: optimized playback, with incremental rebuilds and faster linking.
+[profile.dev-app]
+inherits = "release"
+opt-level = 2
+lto = false
+codegen-units = 16
+incremental = true
+strip = "debuginfo"

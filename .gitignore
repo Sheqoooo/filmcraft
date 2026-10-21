@@ -6,3 +6,6 @@ plan/
 .DS_Store
 .claude/worktrees/
 __pycache__/
+/.dev-tools/
+/FilmCraft Dev.app/
+/FilmCraft aktualisieren.app/

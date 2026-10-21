@@ -1,0 +1,51 @@
+name: macOS ARM64 developer app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'Sheqoooo/filmcraft'
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Select pinned native toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup override set 1.95.0
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: macos-arm64-rust-1.95-dev-app-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            macos-arm64-rust-1.95-dev-app-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}-
+            macos-arm64-rust-1.95-dev-app-
+      - name: Build and verify developer app
+        run: bash packaging/macos/dev/build.sh
+      - name: Archive app preserving executable permissions and signatures
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "FilmCraft Dev.app" dist/dev/FilmCraft-Dev-macos-arm64.zip
+          cd dist/dev
+          shasum -a 256 FilmCraft-Dev-macos-arm64.zip > FilmCraft-Dev-macos-arm64.zip.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: FilmCraft-Dev-macos-arm64-${{ github.sha }}
+          path: |
+            dist/dev/FilmCraft-Dev-macos-arm64.zip
+            dist/dev/FilmCraft-Dev-macos-arm64.zip.sha256
+          if-no-files-found: error
+          retention-days: 7

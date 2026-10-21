@@ -84,3 +84,9 @@ buttons use `craft-ui::layout::fit_toolbar`; commands beyond the available width
 through More, including their selected state and Source/Program routing. A scrolling fallback
 retains all commands if even More cannot fit. `monitor_geometry` checks the painted readouts,
 control bounds, overflow actions and Source drag payloads across monitor widths and themes.
+
+## Independent developer fork
+
+This checkout identifies itself as FilmCraft Dev in the welcome screen and About dialog. It draws
+plain text instead of embedding the upstream ArtCraft trademark images. The permissively licensed
+FilmCraft application icon is retained. See `packaging/macos/dev/README.md` for local app builds.

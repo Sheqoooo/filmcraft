@@ -1,14 +1,10 @@
-<p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
-</p>
+<h1 align="center">FilmCraft Dev</h1>
 
-
-<h1 align="center">FilmCraft</h1>
+Native Apple-Silicon-Entwicklerversion von **Sheqoooo/filmcraft**:
+Einmal **FilmCraft einrichten.command** doppelklicken, anschließend **FilmCraft Dev.app** starten
+und Änderungen über **FilmCraft aktualisieren.app** übernehmen.
+[Anleitung und Build-Details](packaging/macos/dev/README.md).
+Das normale FilmCraft kann unabhängig davon geöffnet bleiben.
 
 <p align="center">
   <b>Video editing, color and sound; an open-source, professional non-linear video editor, built in pure Rust.</b>
@@ -16,7 +12,7 @@
 
 <p align="center">
   An open-source, modern non-linear video editing workflow: native on macOS, Windows and Linux, and in the browser via WebAssembly.<br>
-  By the ArtCraft team.
+  Independent developer fork, based on FilmCraft by the ArtCraft team.
 </p>
 
 <p align="center">

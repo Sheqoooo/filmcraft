@@ -302,7 +302,8 @@ Don't block on choices you can make yourself:
 - **Ask a human only about:**
   - licences outside the allowlist;
   - spending money;
-  - publishing or pushing;
+  - publishing or pushing outside the standing authorization for this development fork (see
+    `AGENTS.md`, Development policy); routine development pushes to Sheqoooo/filmcraft are authorized;
   - personal data;
   - destructive git operations;
   - anything AGENTS.md leaves unclear ("when in doubt, leave it out").

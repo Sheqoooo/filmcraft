@@ -3,6 +3,23 @@
 These rules apply to every human and AI contributor. `CLAUDE.md` holds the working instructions; this
 file holds the rules that must never be broken. When the two disagree, this file wins.
 
+## Development policy for Sheqoooo/filmcraft
+
+This is the owner's independent development fork. The owner explicitly authorizes routine local
+commits and pushes of development snapshots to **Sheqoooo/filmcraft**, including `main`, even when
+individual tests fail or checks cannot be completed. Do not request the same permission again
+solely because a check is red or unavailable. This policy overrides inherited requirements for
+an entirely green workspace before every development commit or push.
+
+- Run checks appropriate to the changed scope; preserve existing tests and report their actual
+  results. Record known failures, incomplete checks and relevant limitations in the commit or
+  validation notes. Do not weaken tests to conceal failures or call an unverified snapshot stable.
+- Keep changes recoverable and respect the owner's newer instructions and unrelated local work.
+- This standing authorization is limited to this fork's development history and development-build
+  automation. Changes to the upstream repository, stable releases, spending money and destructive
+  actions require separate authorization.
+- All asset, licence, clean-room and runtime error-handling rules below still apply.
+
 ## 0. Never crash
 
 People trust FilmCraft with hours of work. A malformed file, a bad command or MCP parameter, a corrupt
