@@ -38,6 +38,14 @@ pub struct Plan {
     pub height: u32,
     pub rate: FrameRate,
 }
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Pending {
+    pub plan: Plan,
+    pub link: Link,
+}
+fn pending_key(seq: ItemId, clip: filmcraft_project::ClipId) -> String {
+    format!("filmcraft.effectcraft.pending.{}.{}", seq.0, clip.0)
+}
 fn fail(message: impl Into<String>) -> EngineError {
     EngineError::Other(message.into())
 }
@@ -60,6 +68,23 @@ fn prepare(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(fail("the clip's track is locked"));
     }
     let item = s.project.item(it.item).ok_or_else(|| fail("missing source item"))?;
+    let sequence = s.state.active_sequence.ok_or(EngineError::NoSequence)?;
+    if let Some(text) = item.metadata.get(&pending_key(sequence, it.id)) {
+        let mut pending: Pending = serde_json::from_str(text).map_err(|e| fail(e.to_string()))?;
+        pending.link.validate().map_err(fail)?;
+        if it.item != pending.plan.clip.item
+            || it.source_in != pending.plan.clip.source_in
+            || it.duration != pending.plan.clip.duration
+            || it.speed != 1.0
+            || it.reverse
+            || it.frame_hold.is_some()
+        {
+            return Err(fail("the clip's source range changed after preparing EffectCraft; restore its range before applying"));
+        }
+        pending.plan.clip = (*it).clone();
+        pending.plan.filmcraft_project = s.path.clone().ok_or_else(|| fail("save the FilmCraft project first"))?;
+        return Ok(json!({"pending":pending}));
+    }
     if let Some(text) = item.metadata.get(LINK_KEY) {
         let link: Link = serde_json::from_str(text).map_err(|e| fail(format!("invalid EffectCraft link: {e}")))?;
         link.validate().map_err(fail)?;
@@ -79,22 +104,37 @@ fn prepare(s: &mut Session, p: &Value) -> Result<Value> {
         json!({"plan":Plan {filmcraft_project:project,sequence:s.state.active_sequence.ok_or(EngineError::NoSequence)?,clip:(*it).clone(),source,width:v.width,height:v.height,rate:q.settings.frame_rate}}),
     )
 }
-fn attach(s: &mut Session, p: &Value) -> Result<Value> {
-    let plan: Plan = serde_json::from_value(p.get("plan").cloned().ok_or_else(|| fail("missing plan"))?).map_err(|e| fail(e.to_string()))?;
-    let link: Link = serde_json::from_value(p.get("link").cloned().ok_or_else(|| fail("missing link"))?).map_err(|e| fail(e.to_string()))?;
-    link.validate().map_err(fail)?;
+fn stage(s: &mut Session, p: &Value) -> Result<Value> {
+    let pending: Pending = serde_json::from_value(p.clone()).map_err(|e| fail(e.to_string()))?;
+    pending.link.validate().map_err(fail)?;
+    check_target(s, &pending.plan)?;
+    let text = serde_json::to_string(&pending).map_err(|e| fail(e.to_string()))?;
+    let key = pending_key(pending.plan.sequence, pending.plan.clip.id);
+    s.edit("Prepare EffectCraft project", |project, _| {
+        let item = project.item_mut(pending.plan.clip.item).ok_or_else(|| fail("missing source item"))?;
+        item.metadata.insert(key, text);
+        Ok(())
+    })?;
+    Ok(json!({"project":pending.link.project}))
+}
+fn check_target(s: &Session, plan: &Plan) -> Result<()> {
     if s.path.as_deref() != Some(&plan.filmcraft_project) {
         return Err(fail("the FilmCraft project changed while EffectCraft was preparing"));
     }
     let q = s.project.sequence(plan.sequence).ok_or_else(|| fail("the original sequence no longer exists"))?;
     let (tid, it) = q.find_item(plan.clip.id).ok_or_else(|| fail("the original clip no longer exists"))?;
-    // Automatic effect points contain NaN sentinels, which are unequal even to themselves.
-    // Compare the persisted representation used by the preparation plan.
     if serde_json::to_value(it).map_err(|e| fail(e.to_string()))? != serde_json::to_value(&plan.clip).map_err(|e| fail(e.to_string()))?
         || q.track(tid).is_some_and(|t| t.locked)
     {
         return Err(fail("the clip changed or its track was locked while EffectCraft was preparing; no clip was replaced"));
     }
+    Ok(())
+}
+fn attach(s: &mut Session, p: &Value) -> Result<Value> {
+    let plan: Plan = serde_json::from_value(p.get("plan").cloned().ok_or_else(|| fail("missing plan"))?).map_err(|e| fail(e.to_string()))?;
+    let link: Link = serde_json::from_value(p.get("link").cloned().ok_or_else(|| fail("missing link"))?).map_err(|e| fail(e.to_string()))?;
+    link.validate().map_err(fail)?;
+    check_target(s, &plan)?;
     let src = s.media.open_file(&link.output, &*s.services)?;
     if !src.info().has_video() || src.info().duration + plan.rate.frame_duration() < plan.clip.duration {
         return Err(fail("the EffectCraft render is missing video or is shorter than the clip"));
@@ -103,6 +143,9 @@ fn attach(s: &mut Session, p: &Value) -> Result<Value> {
     let id = s.edit_group("Edit in EffectCraft", |s| {
         let id = crate::commands::import_streamed(s, &link.output, None)?;
         s.edit("Link EffectCraft render", |project, _| {
+            if let Some(source) = project.item_mut(plan.clip.item) {
+                source.metadata.remove(&pending_key(plan.sequence, plan.clip.id));
+            }
             let item = project.item_mut(id).ok_or_else(|| fail("missing imported render"))?;
             item.name = format!("{} · EffectCraft", plan.clip.name);
             item.metadata.insert(LINK_KEY.into(), metadata);
@@ -143,6 +186,8 @@ fn refresh(s: &mut Session, p: &Value) -> Result<Value> {
     let project = std::sync::Arc::make_mut(&mut s.project);
     for id in &ids {
         if let Some(media) = project.item_mut(*id).and_then(|i| i.as_media_mut()) {
+            media.media = MediaRef::File { path: output.into() };
+            media.offline = false;
             media.info = src.info().clone();
             media.identity = identity;
             s.media.insert_file(*id, output, src.clone());
@@ -150,6 +195,32 @@ fn refresh(s: &mut Session, p: &Value) -> Result<Value> {
     }
     s.bump_view();
     Ok(json!({"refreshed":ids}))
+}
+fn rebind(s: &mut Session, p: &Value) -> Result<Value> {
+    let old: Link = serde_json::from_value(p.get("old").cloned().ok_or_else(|| fail("missing old link"))?).map_err(|e| fail(e.to_string()))?;
+    let new: Link = serde_json::from_value(p.get("new").cloned().ok_or_else(|| fail("missing new link"))?).map_err(|e| fail(e.to_string()))?;
+    old.validate().map_err(fail)?;
+    new.validate().map_err(fail)?;
+    let ids: Vec<_> = s
+        .project
+        .items
+        .values()
+        .filter(|i| i.metadata.get(LINK_KEY).and_then(|text| serde_json::from_str::<Link>(text).ok()).as_ref() == Some(&old))
+        .map(|i| i.id)
+        .collect();
+    if ids.is_empty() {
+        return Err(fail("the EffectCraft link is no longer part of this project"));
+    }
+    let text = serde_json::to_string(&new).map_err(|e| fail(e.to_string()))?;
+    s.edit("Move EffectCraft working copy", |project, _| {
+        for id in &ids {
+            if let Some(item) = project.item_mut(*id) {
+                item.metadata.insert(LINK_KEY.into(), text.clone());
+            }
+        }
+        Ok(())
+    })?;
+    Ok(json!({"items":ids}))
 }
 pub(crate) fn commands() -> Vec<CommandSpec> {
     vec![
@@ -174,6 +245,26 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             journal: true,
         },
         CommandSpec {
+            id: "effectcraft.stage",
+            label: "EffectCraft…",
+            menu: &[],
+            shortcut: None,
+            params: r#"{"plan":object,"link":object}"#,
+            enabled: crate::commands::has_seq,
+            run: stage,
+            journal: true,
+        },
+        CommandSpec {
+            id: "clip.applyEffectCraft",
+            label: "Apply EffectCraft Changes",
+            menu: &["Clip"],
+            shortcut: None,
+            params: r#"{"clips":[id]?}"#,
+            enabled: crate::commands::has_selection,
+            run: prepare,
+            journal: false,
+        },
+        CommandSpec {
             id: "effectcraft.refresh",
             label: "EffectCraft…",
             menu: &[],
@@ -182,6 +273,16 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             enabled: |_| Ok(()),
             run: refresh,
             journal: false,
+        },
+        CommandSpec {
+            id: "effectcraft.rebind",
+            label: "EffectCraft…",
+            menu: &[],
+            shortcut: None,
+            params: r#"{"old":object,"new":object}"#,
+            enabled: crate::commands::has_seq,
+            run: rebind,
+            journal: true,
         },
     ]
 }
@@ -299,6 +400,44 @@ mod tests {
         c.effects = vec![filmcraft_project::find_effect("motion").unwrap().instance()];
         p.clip = c.clone();
         assert!(s.execute("effectcraft.attach", json!({"plan":p,"link":l})).is_ok());
+    }
+    #[test]
+    fn staging_keeps_the_original_clip_and_persists_its_pending_link() {
+        let (mut s, p, l) = fixture();
+        let before = s.project.clone();
+        s.execute("effectcraft.stage", json!({"plan":p,"link":l})).unwrap();
+        assert_eq!(s.active_sequence().unwrap().video_tracks[0].items[0], p.clip);
+        assert_eq!(s.project.items.len(), before.items.len());
+        let pending = s.execute("clip.editInEffectCraft", json!({})).unwrap();
+        assert_eq!(pending["pending"]["link"], json!(l));
+        let saved = serde_json::to_string(&*s.project).unwrap();
+        let loaded: filmcraft_project::Project = serde_json::from_str(&saved).unwrap();
+        assert!(loaded.item(p.clip.item).unwrap().metadata.contains_key(&pending_key(p.sequence, p.clip.id)));
+        assert!(s.execute("effectcraft.stage", json!({"plan":null,"link":l})).is_err());
+        assert!(s.undo().is_some());
+        assert_eq!(s.project, before);
+    }
+    #[test]
+    fn migrated_link_keeps_the_previous_picture_until_explicit_apply() {
+        use crate::media_test_util::frame_rgba;
+        let (mut s, p, l) = fixture();
+        s.execute("effectcraft.attach", json!({"plan":p,"link":l})).unwrap();
+        let picture = frame_rgba(&mut s, 1, 1.0).2;
+        let clip = s.active_sequence().unwrap().video_tracks[0].items[0].clone();
+        let dir = tmp_dir("effectcraft-migrated");
+        let new = Link {
+            project: dir.join("clip.ecproj").to_string_lossy().into_owned(),
+            output: dir.join("render.mov").to_string_lossy().into_owned(),
+            token: "migrated".into(),
+        };
+        make_movie(Path::new(&new.output), DemoScene::Aurora, 160, 90, 8);
+        assert!(s.execute("effectcraft.rebind", json!({})).is_err());
+        s.execute("effectcraft.rebind", json!({"old":l,"new":new})).unwrap();
+        assert_eq!(frame_rgba(&mut s, 1, 1.0).2, picture);
+        assert_eq!(s.active_sequence().unwrap().video_tracks[0].items[0], clip);
+        s.execute("effectcraft.refresh", json!({"output":new.output})).unwrap();
+        assert_ne!(frame_rgba(&mut s, 1, 1.0).2, picture);
+        assert_eq!(s.active_sequence().unwrap().video_tracks[0].items[0], clip);
     }
     use std::path::Path;
 }

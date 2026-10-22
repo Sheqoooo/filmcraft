@@ -28,11 +28,12 @@ Dies sind Entwicklungsstände; die Übersicht ersetzt keine Freigabe als stabile
 
 ### Neu: Clip in EffectCraft bearbeiten
 
-Rechtsklick auf einen Video-Clip → **EffectCraft…**. Nach der Vorbereitung öffnet sich das
-zugehörige EffectCraft-Projekt. Dort **⌘S** speichern: FilmCraft rendert im Hintergrund und
-aktualisiert denselben Timeline-Clip. Position und Länge bleiben erhalten; Originaldatei und
-Audiospur bleiben unverändert. Benötigt die neue **FilmCraft Dev**-App und eine installierte
-EffectCraft-App. [Anleitung und Grenzen dieser ersten Version](docs/effectcraft.md).
+Rechtsklick auf einen Video-Clip → **EffectCraft…**. FilmCraft öffnet das Arbeitsprojekt mit einer
+lokalen Quellkopie, ohne vorab zu rendern. Dort bearbeiten und **⌘S** speichern. Erst wenn du fertig
+bist, in FilmCraft **Änderungen aus EffectCraft übernehmen** wählen: Jetzt wird gerendert und
+derselbe Timeline-Clip aktualisiert. Position, Länge und Audiospur bleiben erhalten.
+Benötigt **FilmCraft Dev** und eine installierte EffectCraft-App.
+[Anleitung, Speicherort und Grenzen](docs/effectcraft.md).
 
 ---
 

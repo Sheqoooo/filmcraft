@@ -46,7 +46,9 @@ optionalen separaten craft-fonts-Checkout. FFmpeg wird weder benötigt noch eing
 ## Clip in EffectCraft bearbeiten
 
 Rechtsklick auf einen Video-Clip → **EffectCraft…**. Nach der Vorbereitung öffnet sich EffectCraft.
-Dort **⌘S** speichern: FilmCraft rendert im Hintergrund und aktualisiert denselben Timeline-Clip.
+Dort bearbeiten und **⌘S** speichern. Erst **Änderungen aus EffectCraft übernehmen** in FilmCraft
+startet den Render und aktualisiert denselben Timeline-Clip. Beim Öffnen wird nur eine lokale
+Arbeitskopie angelegt.
 Das FilmCraft-Projekt vorher speichern und die installierte EffectCraft-App behalten.
 [Anleitung, Dateiverwaltung und Grenzen](../../../docs/effectcraft.md).
 

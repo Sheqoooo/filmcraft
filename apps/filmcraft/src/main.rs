@@ -361,6 +361,17 @@ fn clipboard_media() -> Option<filmcraft_ui_egui::ClipboardMedia> {
 /// Open a file in its default application, or reveal it in the file manager (Edit Original,
 /// Reveal Log Files).
 fn open_path(path: &str, reveal: bool) -> Result<(), String> {
+    // Linked projects belong to EffectCraft even if macOS has another default .ecproj handler.
+    // `spawn` alone only reports that /usr/bin/open started, hiding Launch Services failures.
+    #[cfg(target_os = "macos")]
+    if !reveal && std::path::Path::new(path).extension().is_some_and(|ext| ext.eq_ignore_ascii_case("ecproj")) {
+        let output =
+            std::process::Command::new("/usr/bin/open").args(effectcraft_open_args(path)).output().map_err(|e| format!("can't open EffectCraft: {e}"))?;
+        if output.status.success() {
+            return Ok(());
+        }
+        return Err(format!("can't open EffectCraft ({}): {}", output.status, String::from_utf8_lossy(&output.stderr).trim()));
+    }
     let mut cmd = if cfg!(target_os = "macos") {
         let mut c = std::process::Command::new("open");
         if reveal {
@@ -384,6 +395,11 @@ fn open_path(path: &str, reveal: bool) -> Result<(), String> {
         c
     };
     cmd.spawn().map(|_| ()).map_err(|e| format!("can't open {path}: {e}"))
+}
+
+#[cfg(target_os = "macos")]
+fn effectcraft_open_args(path: &str) -> [&str; 6] {
+    ["-n", "-b", "ai.storyteller.effectcraft", "--args", "--", path]
 }
 
 /// The GPU export frame renderer (filmcraft-gpu's off-screen compositor behind filmcraft-export's
@@ -514,6 +530,14 @@ fn project_patterns() -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn linked_project_opens_in_effectcraft_without_shell_interpretation() {
+        assert_eq!(
+            super::effectcraft_open_args("/tmp/My Clip $(example).ecproj"),
+            ["-n", "-b", "ai.storyteller.effectcraft", "--args", "--", "/tmp/My Clip $(example).ecproj"]
+        );
+    }
     /// Start-up registers the hardware decoders whether or not anything is logged (no logger is
     /// installed here, as in a normal run).
     #[test]

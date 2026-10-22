@@ -201,3 +201,43 @@ noted earlier remain unresolved; the full workspace gate was not rerun for this 
 No interactive GUI or external GPU screenshot test was run. This validates a synthetic roundtrip,
 not every effect or media format supported by EffectCraft. See docs/effectcraft.md for current
 workflow limits, absolute paths, unchanged audio and normal-speed-only selection support.
+
+## Manual EffectCraft apply and accessible workspaces (2026-10-22)
+
+This supersedes DEV.9's automatic save-linked behavior at the owner's request. Opening prepares a
+composition and copies source bytes into the local FilmCraft Dev data directory; it never renders
+or replaces the timeline source. Saving in EffectCraft never starts a render. The explicit
+`clip.applyEffectCraft` menu action renders the saved composition and then attaches/refreshes its
+output. Per-clip pending metadata survives saving and undo, without affecting other placements of
+the same source. Existing DEV.9 links can be migrated by copying the saved EffectCraft project and
+its file footage to a fresh local workspace, preserving the old project/render until manual apply.
+
+Observed user-session evidence: EffectCraft's own log repeatedly reported that it could not open
+the source movie under Dropbox (I/O error). Direct inspection of the Dropbox sidecars was also
+blocked by macOS permissions even outside the execution sandbox. No user project, source, working
+copy or running application was modified during diagnosis. The new local-copy path is exercised
+synthetically, not claimed verified against that inaccessible user movie.
+
+The public EffectCraft 0.14.0 launcher opens project arguments before choosing Home; its macOS
+opened-document queue is gated on the editor becoming ready. FilmCraft now launches the named
+EffectCraft bundle in a separate instance with the project as an argument, bypassing that Home
+queue. Launch Services exit failures are checked. This can create another EffectCraft instance;
+the documentation explains saving/closing the previous working instance before reopening.
+
+Validation covers pending links with an unchanged timeline, explicit apply, undo/redo, migration
+without changing the previous picture, persistent error/progress windows with a hidden status bar,
+wrong/oversized manifests, worker failure containment, malformed command input and launch argument
+boundaries. The actual CLI tests prove opening emits no render, saving alone leaves output unchanged,
+manual apply changes FilmCraft's rendered picture, failed apply preserves the last good movie,
+and local source copies/migrated media render even after the original fixture is removed. Source
+copies are byte-for-byte verified. A monotonic counter prevents same-clock temporary-name collisions.
+
+Prior full-workspace export/wasm limitations remain documented; no full gate or interactive user-
+media/GUI test is claimed. Current scoped results and native build are recorded in the commit notes.
+
+Final scoped results for this revision: 24 tests passed (7 engine, 5 native worker/manual-CLI/
+migration tests, 1 macOS launch-argument test, 11 menu/translation tests). Engine/UI/desktop Clippy
+with warnings denied, formatting and shell syntax passed. Native ARM64 build and strict app
+signatures passed. Finder left a .DS_Store in the temporary stage after the verified app had been
+installed; the builder now retains incidental staging files with a note rather than reporting a
+failed build. No user files are deleted by that cleanup handling.

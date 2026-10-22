@@ -86,5 +86,9 @@ if ! mv "$APP" "$DEST"; then
   echo 'Could not install the new app; the previous version was restored.' >&2
   exit 1
 fi
-rmdir "$STAGE"
+if ! rmdir "$STAGE" 2>/dev/null; then
+  # Finder can create .DS_Store while inspecting a staging folder. The installed, verified app
+  # is already in place; preserve incidental files without reporting the build as failed.
+  echo "Note: retained staging folder with incidental files: $STAGE"
+fi
 echo "Ready: $DEST"

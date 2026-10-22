@@ -2040,7 +2040,12 @@ pub(crate) const CLIP_MENU: &[&[(&str, &str)]] = &[
         ("Clear", "edit.clear"),
         ("Ripple Delete", "edit.rippleDelete"),
     ],
-    &[("Edit Original", "edit.editOriginal"), ("EffectCraft…", "clip.editInEffectCraft"), ("Replace With Clip From Source Monitor", "clip.replaceFromSource")],
+    &[
+        ("Edit Original", "edit.editOriginal"),
+        ("EffectCraft…", "clip.editInEffectCraft"),
+        ("Apply EffectCraft Changes", "clip.applyEffectCraft"),
+        ("Replace With Clip From Source Monitor", "clip.replaceFromSource"),
+    ],
     &[
         ("Enable", "clip.enable"),
         ("Link", "clip.link"),

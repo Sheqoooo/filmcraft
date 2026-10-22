@@ -179,12 +179,12 @@ pub fn targets_source(app: &FilmcraftApp, params: &Value) -> bool {
 
 /// Execute a UI or engine command by id.
 pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params: Value) -> Result<Value, String> {
-    if id == "clip.editInEffectCraft" {
+    if matches!(id, "clip.editInEffectCraft" | "clip.applyEffectCraft") {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let result = crate::effectcraft::invoke(app, ctx, params);
+            let result = if id == "clip.applyEffectCraft" { crate::effectcraft::apply(app, ctx, params) } else { crate::effectcraft::invoke(app, ctx, params) };
             if let Err(e) = &result {
-                app.ui.status = e.clone();
+                crate::effectcraft::report_error(app, e.clone());
             }
             return result;
         }
