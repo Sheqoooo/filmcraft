@@ -6,6 +6,28 @@ und Änderungen über **FilmCraft aktualisieren.app** übernehmen.
 [Anleitung und Build-Details](packaging/macos/dev/README.md).
 Das normale FilmCraft kann unabhängig davon geöffnet bleiben.
 
+## Unsere bisherigen Fehlerbehebungen
+
+Stand: **22. Oktober 2026**. Diese Änderungen sind im Entwicklungs-Fork **Sheqoooo/filmcraft** enthalten.
+
+| Bereich | Behobenes Problem und neues Verhalten |
+| --- | --- |
+| **Clips verknüpfen** | Das Kontextmenü zeigt passend zur Auswahl **Verknüpfen** oder **Verknüpfung aufheben** an. Zuvor stand dort auch bei unverknüpften Clips immer „Verknüpfung aufheben“. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/020080486812cba67e534b91de62d6545ac26323) |
+| **Effekte kopieren und einfügen** | In den Effekteinstellungen einen Effekt wie **Bewegung** oder **Transform** markieren, mit **⌘C** kopieren und mit **⌘V** auf den ausgewählten Zielclip übertragen. Dabei werden die Einstellungen samt Animation übernommen; es wird kein zusätzlicher Clip in die Timeline eingefügt. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/fc4c184a83e4d019926e311675620b1b97c2bc82) |
+| **Einzelne Effektparameter kopieren** | Auch einzelne Parameter lassen sich übertragen: das **Parameterlabel** wie „Skalieren“ oder „Position“ anklicken und kopieren. Die übrigen Einstellungen des Zielclips bleiben erhalten. Die Kopierfunktion wurde außerdem gegen veraltete Clip-Auswahlen abgesichert. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/464ab35abc411028cf8b0d50198aacdb6cbea735) |
+| **In-/Out-Punkte mit der Maus verschieben** | Der graue Bereich in der Timeline besitzt sichtbare Griffe für In und Out. Sie lassen sich mit der linken Maustaste ziehen und rasten bei aktivem **Snapping (S)** unter anderem an Clipkanten ein. Die Änderung lässt sich rückgängig machen; **Esc** bricht das Ziehen ab. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/931a55763328c44b179a68b57eb37959704dca2a) |
+| **Gemeinsame Monitorfläche** | Teilen sich Quell- und Programmmonitor eine Tab-Gruppe, wird beim Start der Timeline-Wiedergabe automatisch der **Programmmonitor** angezeigt. Beim Start der Quellwiedergabe erscheint der **Quellmonitor**. Der Tastaturfokus bleibt dabei erhalten. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/6afe4d547a0c04545f76825b75336db9ebb9af61) |
+| **Flüssiges Scrubbing im Monitor** | Auf der Zeitleiste von Quell- und Programmmonitor springt der Playhead schon beim Drücken der linken Maustaste zur Mausposition und folgt beim Ziehen sofort. Zuvor wurde die Bewegung im Quellmonitor als Verschieben des markierten Bereichs behandelt. Den gesamten In-/Out-Bereich verschiebt jetzt **⌥ Option/Alt + Ziehen**; die Randgriffe bleiben direkt bedienbar. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/b95c55becb765b3bd412524ba2e0eab6124da319) |
+
+Zusätzlich eingerichtet: eine per Doppelklick startbare **Apple-Silicon-Developer-App**, ein eigenes
+**DEV-Dock-Symbol**, getrennte Einstellungen zur normalen FilmCraft-App, ein **Update-/Rebuild-Helfer**
+und automatische **macOS-ARM64-Entwicklungs-Builds** über GitHub Actions.
+Siehe [Mac-Anleitung](packaging/macos/dev/README.md) und
+[Prüfergebnisse und bekannte Einschränkungen](packaging/macos/dev/VALIDATION.md).
+Dies sind Entwicklungsstände; die Übersicht ersetzt keine Freigabe als stabile Version.
+
+---
+
 <p align="center">
   <b>Video editing, color and sound; an open-source, professional non-linear video editor, built in pure Rust.</b>
 </p>
