@@ -3,6 +3,18 @@
 The egui frontend draws panels and dialogs, and dispatches project changes through the engine.
 Interactive controls keep stable automation ids regardless of the interface language.
 
+## Timeline In/Out grips
+
+The same sequence In/Out marks set with I/O have visible mouse grips on the ruler's grey band.
+Drag either grip with the primary button. With Timeline snapping enabled, clip starts/ends,
+sequence markers, the other boundary and the playhead are snap targets. Grips stay frame-aligned
+and cannot cross; the drawn Out edge is exclusive while the stored Out frame remains inclusive.
+Dragging previews the band and a vertical guide without editing clips or moving the playhead.
+Release commits one normal mark command, undoable as one step; Escape/focus loss cancels.
+`timeline.inPoint` and `timeline.outPoint` expose the grips to automation. `timeline_marks_ui`
+covers keyboard-created marks, snapping, disabled snapping, one-frame ranges, undo/redo, unchanged
+clips/playhead, cancellation and non-primary buttons.
+
 ## Copying one effect
 
 Select an effect header in Effect Controls and use Copy (Cmd/Ctrl+C), or select a parameter's

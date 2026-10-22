@@ -114,3 +114,22 @@ GPU test passed outside the sandbox. A further image test was declined and was n
 No user project or running application was changed. Confirmation of the originally reported
 runtime failure on the user's workflow is still needed; the prior workspace export/wasm gate
 limitations remain unchanged.
+
+## Timeline In/Out mouse grips (2026-10-22)
+
+Added primary-button grips for the existing sequence In/Out range (including marks set with I/O).
+The band and boundary guide preview locally; release dispatches one ordinary markers.markIn/Out
+command. Escape/focus loss cancels without a history entry. Enabled Timeline snapping targets clip
+boundaries, sequence markers, playhead and the other boundary, excluding the dragged mark itself.
+Out is drawn at its exclusive edge and committed as the inclusive last frame. Boundaries cannot
+cross; short/one-frame intervals resolve overlapping grip targets by their visible grip centers.
+The original generic grip geometry is recorded in ATTRIBUTION.md.
+
+Validation: 27 headless UI tests passed across timeline_marks_ui, timeline_trim_ui,
+timeline_middle_pan_ui, timeline_escape_ui and marked_playback_position. Two existing optional
+trim screenshot tests remained ignored. New real-pointer tests cover I/O-created marks, snapping,
+frame alignment, crossing prevention, undo/redo, unchanged clips/playhead, preview cancellation,
+and non-primary buttons. Scoped UI Clippy with warnings denied, formatting, native ARM64 developer
+packaging and strict signature verification passed. No native window was opened or user project
+modified. Additional GPU image checks were not requested. The earlier workspace-wide export-test
+failure and incomplete wasm gate remain documented and were not rerun for this UI-only change.

@@ -43,6 +43,7 @@ pub struct TlState {
     pub drag: Option<Drag>,
     /// What the primary button went down on in the Timeline (#259); see [`Pressed`].
     pub pressed: Option<Pressed>,
+    pub(super) range_drag: Option<super::timeline_marks::MarkDrag>,
     /// A drag or press aborted with Escape; ignores release until the button comes up (#580).
     pub cancelled: bool,
     /// Last layout (for hit-testing from the control channel).
@@ -447,6 +448,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     }
     let layout = Layout { content, ruler, rows: rows.clone(), pps, scroll, split_y };
     app.tl.layout = Some(layout.clone());
+    let range_handled = super::timeline_marks::interact(app, ui, seq, &layout, seq_id);
 
     // ---- backgrounds
     painter.rect_filled(Rect::from_min_max(pos2(content.min.x, content.min.y), content.max), 0.0, t.tl_bg);
@@ -470,10 +472,11 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             painter.line_segment([pos2(row.min.x, r.rect.min.y + 0.5), pos2(row.max.x, r.rect.min.y + 0.5)], Stroke::new(1.0, t.separator));
         }
     }
-    // in/out shading across tracks
-    if seq.mark_in.is_some() || seq.mark_out.is_some() {
-        let a = layout.x_of(seq.mark_in.unwrap_or(Tick::ZERO)).max(content.min.x);
-        let b = layout.x_of(seq.mark_out.map(|o| o + rate.frame_duration()).unwrap_or(seq.duration())).min(content.max.x);
+    // in/out shading across tracks (including a handle's uncommitted drag preview)
+    let (mark_in, mark_out) = super::timeline_marks::marks(app, seq);
+    if mark_in.is_some() || mark_out.is_some() {
+        let a = layout.x_of(mark_in.unwrap_or(Tick::ZERO)).max(content.min.x);
+        let b = layout.x_of(mark_out.map(|o| o + rate.frame_duration()).unwrap_or(seq.duration())).min(content.max.x);
         if b > a {
             painter.rect_filled(Rect::from_min_max(pos2(a, content.min.y), pos2(b, content.max.y)), 0.0, t.in_out_shade);
         }
@@ -720,7 +723,9 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     );
 
     // ---- interaction
-    interact(app, ui, seq, &layout, rect);
+    if !range_handled {
+        interact(app, ui, seq, &layout, rect);
+    }
     super::timeline_volume::interact(app, ui, seq, &layout, aclip);
     // track keyframes (drawn and edited on top of the clips)
     super::timeline_automation::show(app, ui, seq, &layout, aclip);
@@ -1558,9 +1563,10 @@ fn draw_top(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, seq: &Sequenc
     let tick_base = ruler.max.y - 3.0;
     let (minor, label_step) = ruler_steps(layout.pps / rate.as_f64(), rate.timecode_base());
     // In/Out band
-    if seq.mark_in.is_some() || seq.mark_out.is_some() {
-        let a = layout.x_of(seq.mark_in.unwrap_or(Tick::ZERO));
-        let b = layout.x_of(seq.mark_out.map(|o| o + rate.frame_duration()).unwrap_or(seq.duration()));
+    let (mark_in, mark_out) = super::timeline_marks::marks(app, seq);
+    if mark_in.is_some() || mark_out.is_some() {
+        let a = layout.x_of(mark_in.unwrap_or(Tick::ZERO));
+        let b = layout.x_of(mark_out.map(|o| o + rate.frame_duration()).unwrap_or(seq.duration()));
         clip.rect_filled(Rect::from_min_max(pos2(a, label_y + 7.0), pos2(b, tick_base)), 0.0, Color32::from_rgb(0x5c, 0x5c, 0x5c));
     }
     // split points: a short bracket with a V or A tag (video above, audio below)
@@ -1641,6 +1647,7 @@ fn draw_top(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, seq: &Sequenc
         }
     }
     app.auto.add("timeline.ruler", ruler, "time ruler");
+    super::timeline_marks::paint(app, ui, seq, layout);
 }
 
 /// The narrowest the zoom scroll bar's thumb gets: room for its two handles and a part between
