@@ -861,7 +861,8 @@ fn mini_timeline(
         crate::panels::source_range::trim_cue(p, b, bar, -4.0);
     }
     let scrub = interaction.scrub.or_else(|| {
-        if !interaction.handled && (resp.dragged() || resp.clicked()) {
+        let pressed = resp.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed());
+        if !interaction.handled && (pressed || resp.dragged_by(egui::PointerButton::Primary) || resp.clicked_by(egui::PointerButton::Primary)) {
             resp.interact_pointer_pos().map(|pos| {
                 let f = ((pos.x - bar.min.x) / bar.width().max(1.0)).clamp(0.0, 1.0) as f64;
                 rate.snap(shown.0 + Tick((f * dur) as i64))
@@ -877,7 +878,10 @@ fn mini_timeline(
                 app.session.set_playhead(tk);
             }
             Which::Source => {
-                let _ = app.session.execute("source.setPlayhead", json!({"time": tk.0}));
+                app.stop_source();
+                if let Err(error) = app.session.execute("source.setPlayhead", json!({"time": tk.0})) {
+                    app.ui.status = error.to_string();
+                }
             }
         }
     }

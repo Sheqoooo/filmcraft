@@ -24,12 +24,16 @@ fn harness(item: u64) -> Harness<'static, FilmcraftApp> {
     h
 }
 fn pointer(h: &mut Harness<'static, FilmcraftApp>, pos: egui::Pos2, pressed: Option<bool>) {
+    pointer_modifiers(h, pos, pressed, egui::Modifiers::NONE);
+}
+fn pointer_modifiers(h: &mut Harness<'static, FilmcraftApp>, pos: egui::Pos2, pressed: Option<bool>, modifiers: egui::Modifiers) {
+    h.input_mut().events.push(egui::Event::ModifiersChanged(modifiers));
     h.input_mut().events.push(egui::Event::PointerMoved(pos));
     if pressed == Some(true) {
         step(h); // Establish hover before pressing, as the live control-channel drag does.
     }
     if let Some(pressed) = pressed {
-        h.input_mut().events.push(egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE });
+        h.input_mut().events.push(egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers });
     }
     step(h);
 }
@@ -173,8 +177,9 @@ fn range_handles_preview_then_commit_one_undo_step() {
         let before = h.state().session.project.to_json();
         let from = control_rect(&h, id).center();
         let to = from + egui::vec2(35.0, 0.0);
-        pointer(&mut h, from, Some(true));
-        pointer(&mut h, to, None);
+        let modifiers = egui::Modifiers { alt: id.ends_with("body"), ..Default::default() };
+        pointer_modifiers(&mut h, from, Some(true), modifiers);
+        pointer_modifiers(&mut h, to, None, modifiers);
         assert_eq!(h.state().session.project.to_json(), before, "{id} must preview without editing");
         assert!(
             filmcraft_ui_egui::panels::source_range::preview(h.state(), &h.ctx).is_some(),
@@ -182,7 +187,7 @@ fn range_handles_preview_then_commit_one_undo_step() {
             h.state().session.state.source_playhead,
             h.state().auto.find("source.playhead")
         );
-        pointer(&mut h, to, Some(false));
+        pointer_modifiers(&mut h, to, Some(false), modifiers);
         let changed = marked_range(&h);
         assert_ne!(changed, original, "{id}: {}", h.state().ui.status);
         if id.ends_with("body") {
@@ -236,9 +241,10 @@ fn range_move_clamps_to_media_bounds_and_keeps_duration() {
         let before = marked_range(&h);
         let from = control_rect(&h, "source.range.body").center();
         let to = from + egui::vec2(delta, 0.0);
-        pointer(&mut h, from, Some(true));
-        pointer(&mut h, to, None);
-        pointer(&mut h, to, Some(false));
+        let modifiers = egui::Modifiers { alt: true, ..Default::default() };
+        pointer_modifiers(&mut h, from, Some(true), modifiers);
+        pointer_modifiers(&mut h, to, None, modifiers);
+        pointer_modifiers(&mut h, to, Some(false), modifiers);
         let after = marked_range(&h);
         let view = filmcraft_engine::clip_ops::source_view(&h.state().session, filmcraft_engine::project::ItemId(5)).unwrap();
         assert_eq!(after.duration, before.duration);
@@ -301,10 +307,11 @@ fn program_range_handles_share_behavior_and_leave_source_marks_alone() {
         let program_time = h.state().session.playhead();
         let from = control_rect(&h, id).center();
         let to = from + egui::vec2(35.0, 0.0);
-        pointer(&mut h, from, Some(true));
-        pointer(&mut h, to, None);
+        let modifiers = egui::Modifiers { alt: id.ends_with("body"), ..Default::default() };
+        pointer_modifiers(&mut h, from, Some(true), modifiers);
+        pointer_modifiers(&mut h, to, None, modifiers);
         assert_eq!(h.state().session.project.to_json(), before);
-        pointer(&mut h, to, Some(false));
+        pointer_modifiers(&mut h, to, Some(false), modifiers);
         let changed = source_view(&h.state().session, seq).unwrap().selected_range();
         assert_ne!(changed, original, "{id}: {}", h.state().ui.status);
         if id.ends_with("body") {
@@ -390,4 +397,100 @@ fn program_handles_exist_only_for_explicit_marks_and_clear_hides_them() {
     step(&mut h);
     assert!(!has(&h, "program.range.in") && !has(&h, "program.range.out") && !has(&h, "program.range.body"));
     assert!(has(&h, "source.range.in") && has(&h, "source.range.out"));
+}
+
+#[test]
+fn press_with_motion_scrubs_anywhere_in_both_monitor_rulers_without_editing_marks() {
+    use filmcraft_ui_egui::dock::PanelKind;
+    for source in [true, false] {
+        for marked in [false, true] {
+            let mut h = harness(5);
+            if !source {
+                h.state_mut().session.execute("timeline.place", json!({"item":5})).unwrap();
+            }
+            if marked {
+                let item = if source { 5 } else { h.state().session.state.active_sequence.unwrap().0 };
+                h.state_mut()
+                    .session
+                    .execute("project.setMarks", json!({"item":item,"in":Tick::from_seconds_f64(2.0).0,"out":Tick::from_seconds_f64(5.0).0}))
+                    .unwrap();
+            }
+            h.state_mut().ui.focused = if source { PanelKind::Source } else { PanelKind::Program };
+            step(&mut h);
+            step(&mut h);
+            let before = h.state().session.project.to_json();
+            let bar = control_rect(&h, if source { "source.scrubBar" } else { "program.scrubBar" });
+            let from = egui::pos2(bar.min.x + bar.width() * if marked { 0.20 } else { 0.35 }, bar.center().y);
+            pointer(&mut h, from, None);
+            h.input_mut().events.extend([
+                egui::Event::PointerButton { pos: from, button: egui::PointerButton::Primary, pressed: true, modifiers: Default::default() },
+                egui::Event::PointerMoved(from + egui::vec2(8.0, 0.0)),
+            ]);
+            step(&mut h);
+            let time = |h: &Harness<'_, FilmcraftApp>| if source { h.state().session.state.source_playhead } else { h.state().session.playhead() };
+            let pressed = time(&h);
+            assert!(pressed > Tick::ZERO, "press must seek immediately: source={source}, marked={marked}");
+            if marked {
+                let out = control_rect(&h, if source { "source.range.out" } else { "program.range.out" }).center();
+                pointer(&mut h, out, None);
+                assert!(time(&h) > pressed, "crossing a trim handle must not steal a ruler scrub");
+                assert_eq!(h.state().session.project.to_json(), before);
+            }
+            let right = egui::pos2(bar.min.x + bar.width() * 0.8, bar.center().y);
+            pointer(&mut h, right, None);
+            assert!(time(&h) > pressed, "held drag must scrub past the range's Out handle");
+            let left = egui::pos2(bar.min.x + bar.width() * 0.1, bar.center().y);
+            pointer(&mut h, left, None);
+            assert!(time(&h) < pressed, "held drag must also work backwards");
+            pointer(&mut h, left, Some(false));
+            assert_eq!(h.state().session.project.to_json(), before, "scrubbing must not edit any In/Out marks");
+        }
+    }
+}
+
+#[test]
+fn ruler_scrubbing_pauses_source_or_program_playback_on_press() {
+    for source in [true, false] {
+        let mut h = harness(5);
+        if source {
+            h.state_mut().play_source().unwrap();
+        } else {
+            h.state_mut().session.execute("timeline.place", json!({"item":5})).unwrap();
+            h.state_mut().play(1.0);
+        }
+        step(&mut h);
+        let before = h.state().session.project.to_json();
+        let bar = control_rect(&h, if source { "source.scrubBar" } else { "program.scrubBar" });
+        let from = egui::pos2(bar.min.x + bar.width() * 0.4, bar.center().y);
+        pointer(&mut h, from, Some(true));
+        assert!(!if source { h.state().source_playback.clock.playing } else { h.state().playback.playing });
+        let to = from + egui::vec2(20.0, 0.0);
+        pointer(&mut h, to, None);
+        pointer(&mut h, to, Some(false));
+        assert_eq!(h.state().session.project.to_json(), before);
+    }
+}
+
+#[test]
+fn non_primary_drags_on_empty_ruler_do_not_scrub() {
+    for source in [true, false] {
+        for button in [egui::PointerButton::Secondary, egui::PointerButton::Middle] {
+            let mut h = harness(5);
+            if !source {
+                h.state_mut().session.execute("timeline.place", json!({"item":5})).unwrap();
+            }
+            step(&mut h);
+            let bar = control_rect(&h, if source { "source.scrubBar" } else { "program.scrubBar" });
+            let from = egui::pos2(bar.min.x + bar.width() * 0.4, bar.center().y);
+            let to = from + egui::vec2(40.0, 0.0);
+            let times = (h.state().session.state.source_playhead, h.state().session.playhead());
+            pointer(&mut h, from, None);
+            h.input_mut().events.push(egui::Event::PointerButton { pos: from, button, pressed: true, modifiers: Default::default() });
+            step(&mut h);
+            pointer(&mut h, to, None);
+            h.input_mut().events.push(egui::Event::PointerButton { pos: to, button, pressed: false, modifiers: Default::default() });
+            step(&mut h);
+            assert_eq!((h.state().session.state.source_playhead, h.state().session.playhead()), times);
+        }
+    }
 }

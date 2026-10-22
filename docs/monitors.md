@@ -90,15 +90,17 @@ for this contribution was performed on Windows; macOS/Linux have not been run lo
 
 ## Adjust Source marks on the ruler
 
-Drag either In/Out handle to trim the selected span, or drag the interior gray band to move
-both marks while keeping the duration. Handles show an original red bracket and arrows on
+Drag either In/Out handle to trim the selected span, or hold Option (macOS) / Alt (Windows/Linux)
+while dragging the interior gray band to move both marks while keeping the duration. Handles show an original red bracket and arrows on
 hover. Edits snap to source frames, stay within the clip and retain at least one frame.
 A gesture previews without editing the project and commits one undoable `project.setMarks`
 command on release. Escape cancels; opening another source or a concurrent project edit
 also cancels the draft. Subclip handles are currently disabled.
 
 Automation ids are `source.range.in`, `source.range.out`, `source.range.body` and
-`source.settings.loop`. Clicking the band's interior still scrubs.
+`source.settings.loop`. Ordinary primary-button presses seek immediately, including a press
+that already includes pointer motion. Keep the button down to scrub forwards/backwards across
+the ruler and its marked range. Scrubbing pauses the corresponding monitor without editing marks.
 
 Source-focused Go to In/Out, clear individual/both marks, clip-marker commands and
 previous/next marker address the open Source clip. Shift+Left/Right step multiple Source
@@ -121,8 +123,10 @@ Changing the active sequence cancels an unfinished draft. Automation ids: `progr
 playhead-blue color and translucent gray band. Runtime review remains Windows-only.
 
 The playhead has drag priority above the range band and trim handles, including a full-span
-selection. Drag it to scrub; the unoccupied upper ruler can also scrub. Drag the gray band away
-from the playhead to translate the marked range.
+selection. Drag it to scrub, or press anywhere else on the ruler (including the gray band) and
+keep the primary button held to scrub. Crossing an In/Out handle during a ruler scrub does not
+transfer the gesture to trimming. Option/Alt-drag the gray band away from the playhead to translate
+the marked range. Right- and middle-button drags on the ordinary ruler do not seek.
 
 ## Zoom the time ruler
 

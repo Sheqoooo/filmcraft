@@ -150,3 +150,22 @@ directions, floating geometry, maximized tabs, keyboard focus and unchanged proj
 UI Clippy with warnings denied, formatting, native ARM64 developer packaging and strict signature
 verification passed. No user project or running app was manipulated. The previously documented
 workspace-wide export failure and incomplete wasm gate were not rerun for this UI-only change.
+
+## Immediate monitor ruler scrubbing (2026-10-22)
+
+Source's implicit full-media range previously captured an ordinary ruler drag as whole-range
+translation, leaving nowhere for that range to move; its stationary click only sought on release.
+Plain primary-button presses now seek immediately in Source and Program and continue scrubbing
+while held. Range-body translation is retained with Option/Alt-drag; direct In/Out trimming remains
+unchanged. Mere handle hover cannot steal an already captured ruler scrub. Scrubbing pauses the
+corresponding player, preserves marks/project data, and surfaces source seek errors.
+
+Validation: a new real-pointer regression failed on the previous code at the initial moving press
+(Source, implicit full range). After the fix, 37 scoped UI tests passed across source_drag_ui,
+source_playback_ui, monitor_geometry, monitor_follow_playback_ui and marked_playback_position.
+The tests cover moving presses, forward/backward held drags, crossing trim handles, implicit and
+explicit marks in both monitors, playback pause, non-primary buttons, and preserved range-edit
+preview/undo behavior using the new Option/Alt modifier. UI Clippy with warnings denied,
+formatting, native ARM64 developer packaging and strict bundle signature verification passed.
+No running app or user project was manipulated. Prior workspace-wide export/wasm gate limitations
+remain documented and were not rerun for this UI-only change.

@@ -103,6 +103,12 @@ or linked video/audio. Full-clip marks are implicit until set by the user. The e
 range validation and undo; the UI owns the drag gesture. See `source_drag_ui` and the engine's
 `source_placement_tests` for regression coverage.
 
+Source/Program ruler presses seek immediately and held primary-button drags scrub, including
+inside a full-span or explicitly marked range. Hovering over a trim handle during an existing
+ruler scrub does not steal that gesture. Option/Alt-drag moves the marked range as a whole;
+ordinary In/Out handle drags still trim it. Scrubbing pauses the corresponding output without
+editing project data.
+
 Source range handles use transient gesture previews and the engine's integer-frame
 `source_monitor::adjust_range`; release dispatches one mark edit. Monitor command routing
 keeps Source navigation, markers and marked-range playback separate from Program.

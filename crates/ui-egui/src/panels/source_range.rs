@@ -102,6 +102,11 @@ pub fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, which: Whi
             continue;
         }
         app.auto.add(id, rect, label);
+        // Plain dragging anywhere on the ruler scrubs. Option/Alt keeps whole-range movement
+        // available without letting the full-media range swallow every ordinary drag.
+        if edge == RangeEdge::Move && !ctx.input(|i| i.modifiers.alt) && !drag(&ctx, which).is_some_and(|d| d.edge == RangeEdge::Move) {
+            continue;
+        }
         let response =
             ui.add_enabled_ui(enabled && rect.width() > 0.0, |ui| ui.interact(rect, egui::Id::new(id), Sense::click_and_drag())).inner.on_hover_text(label);
         let cursor = if edge == RangeEdge::Move {
@@ -110,7 +115,7 @@ pub fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, which: Whi
             egui::CursorIcon::ResizeHorizontal
         };
         let response = response.on_hover_cursor(cursor);
-        result.handled |= response.hovered() || response.dragged() || response.clicked();
+        result.handled |= response.is_pointer_button_down_on() || response.dragged() || response.clicked();
         if edge == RangeEdge::In {
             result.in_hot = response.hovered();
         }
@@ -181,15 +186,6 @@ pub fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, which: Whi
                 clear(&ctx, which);
             }
         }
-        if response.clicked()
-            && edge == RangeEdge::Move
-            && let Some(pos) = response.interact_pointer_pos()
-        {
-            let time = shown.0.0.saturating_add(((f64::from(pos.x - bar.min.x) / f64::from(bar.width().max(1.0))).clamp(0.0, 1.0) * span) as i64);
-            if let Err(e) = app.session.execute(if which == Which::Source { "source.setPlayhead" } else { "playhead.set" }, json!({"time":time})) {
-                app.ui.status = e.to_string();
-            }
-        }
     }
     let time = if which == Which::Source { app.session.state.source_playhead } else { app.session.playhead() };
     if shows(time) {
@@ -198,7 +194,8 @@ pub fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, which: Whi
         let id = if which == Which::Source { "source.playhead" } else { "program.playhead" };
         app.auto.add(id, rect, "Scrub playhead");
         let playhead = ui.interact(rect, egui::Id::new(id), Sense::click_and_drag()).on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-        if (playhead.dragged() || playhead.clicked())
+        let pressed = playhead.is_pointer_button_down_on() && ctx.input(|i| i.pointer.primary_pressed());
+        if (pressed || playhead.dragged_by(egui::PointerButton::Primary) || playhead.clicked_by(egui::PointerButton::Primary))
             && let Some(pos) = playhead.interact_pointer_pos()
         {
             let f = (f64::from(pos.x - bar.min.x) / f64::from(bar.width().max(1.0))).clamp(0.0, 1.0);
