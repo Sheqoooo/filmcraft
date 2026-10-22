@@ -86,6 +86,35 @@ pub(crate) fn default_float_rect(screen: Rect) -> [f32; 4] {
 }
 
 impl FilmcraftApp {
+    /// Shared monitor tabs follow their playing output without taking keyboard focus from the
+    /// Timeline. Separate monitor groups and closed panels retain their workspace arrangement.
+    pub(crate) fn reveal_playback_monitor(&mut self, panel: PanelKind) {
+        let paired = |panels: &[PanelKind]| panels.contains(&PanelKind::Source) && panels.contains(&PanelKind::Program);
+        let mut shared = self.ui.floating.iter().any(|group| paired(&group.panels));
+        let mut nodes = vec![&self.ui.dock];
+        while let Some(node) = nodes.pop() {
+            match node {
+                DockNode::Tabs { panels, .. } => shared |= paired(panels),
+                DockNode::Split { a, b, .. } => {
+                    nodes.push(a);
+                    nodes.push(b);
+                }
+            }
+        }
+        if !shared {
+            return;
+        }
+        let visible = self.ui.dock.is_visible(panel) || self.ui.floating.iter().any(|group| group.panels.get(group.active) == Some(&panel));
+        if !visible && let Err(error) = self.apply_dock(Action::Activate { panel }) {
+            log::warn!("could not reveal playback monitor: {error}");
+            return;
+        }
+        let other = if panel == PanelKind::Program { PanelKind::Source } else { PanelKind::Program };
+        if self.ui.keys.maximized == Some(other) {
+            self.ui.keys.maximized = Some(panel);
+        }
+    }
+
     fn dock_command(&mut self, ctx: &egui::Context, action: Action<PanelKind>) -> Result<(), String> {
         let value = serde_json::to_value(action).map_err(|error| error.to_string())?;
         crate::menus::invoke(self, ctx, "window.dockAction", json!({"action": value})).map(|_| ())

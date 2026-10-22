@@ -977,6 +977,7 @@ impl FilmcraftApp {
         if self.session.active_sequence().is_none() {
             return;
         }
+        self.reveal_playback_monitor(PanelKind::Program);
         // restart from the end → from the start (Settings ▸ Timeline ▸ "At playback end, return to
         // beginning when restarting playback")
         let dur = self.session.active_sequence().map(|q| q.duration()).unwrap_or_default();

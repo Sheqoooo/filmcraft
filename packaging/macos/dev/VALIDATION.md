@@ -133,3 +133,20 @@ and non-primary buttons. Scoped UI Clippy with warnings denied, formatting, nati
 packaging and strict signature verification passed. No native window was opened or user project
 modified. Additional GPU image checks were not requested. The earlier workspace-wide export-test
 failure and incomplete wasm gate remain documented and were not rerun for this UI-only change.
+
+## Shared monitor follows playback (2026-10-22)
+
+Sequence playback now activates Program when Source and Program share a tab group. Source
+playback activates Source in the same arrangement. This includes floating groups and maximized
+shared monitors, while preserving keyboard focus (Space from the Timeline still pauses sequence
+playback). Separate monitor groups and closed Program panels retain their layout. Tab changes
+use the existing shared docking activation transaction; playback never edits project data.
+
+Validation: two new regression cases failed against the previous code (Timeline Space left Source
+visible; floating/maximized Program activation was missing). After the fix, all 28 scoped tests
+passed across monitor_follow_playback_ui, source_playback_ui, shared_docking_ui, playback_clock_ui
+and marked_playback_position. Coverage includes real Space input, pause routing, both output
+directions, floating geometry, maximized tabs, keyboard focus and unchanged project/layout data.
+UI Clippy with warnings denied, formatting, native ARM64 developer packaging and strict signature
+verification passed. No user project or running app was manipulated. The previously documented
+workspace-wide export failure and incomplete wasm gate were not rerun for this UI-only change.

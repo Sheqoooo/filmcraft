@@ -3,6 +3,15 @@
 The egui frontend draws panels and dialogs, and dispatches project changes through the engine.
 Interactive controls keep stable automation ids regardless of the interface language.
 
+## Shared monitor tabs follow playback
+
+When Source and Program share one tab group, starting sequence playback reveals Program;
+starting source playback reveals Source. This also applies to floating groups and to a maximized
+shared monitor. Activation preserves keyboard focus, so Space from the Timeline starts/stops the
+same output. Separate monitor groups and closed panels retain their workspace arrangement.
+`monitor_follow_playback_ui` covers real Space input, floating/maximized switching in both
+directions, unchanged project data, and separate/closed panels.
+
 ## Timeline In/Out grips
 
 The same sequence In/Out marks set with I/O have visible mouse grips on the ruler's grey band.

@@ -97,6 +97,7 @@ impl FilmcraftApp {
         self.source_playback.clock = Playback { playing: true, speed, anchor_time: -1.0, anchor_tick: time, looping, stop_at: stop, ..Default::default() };
         self.source_playback.clock.meter.start(speed);
         self.start_source_audio();
+        self.reveal_playback_monitor(crate::dock::PanelKind::Source);
         Ok(())
     }
 
