@@ -12,14 +12,14 @@ pub(crate) fn copy(s: &mut Session, _: &Value) -> Result<Value> {
     if !matches!(def.kind, EffectKind::Video | EffectKind::Audio) || filmcraft_project::graphic::is_layer_id(def.id) {
         return Err(EngineError::Other("only clip effects can be copied".into()));
     }
-    s.state.effect_clipboard = Some((source.clone(), index));
+    s.state.effect_clipboard = Some((source.clone(), index, sel.param.clone()));
     s.state.clipboard.clear();
     s.state.clipboard_markers.clear();
     Ok(json!({"copied": 1}))
 }
 
 pub(crate) fn paste(s: &mut Session, p: &Value) -> Result<Value> {
-    let (source, index) = s.state.effect_clipboard.clone().ok_or_else(|| EngineError::Other("copy an effect first".into()))?;
+    let (source, index, param) = s.state.effect_clipboard.clone().ok_or_else(|| EngineError::Other("copy an effect first".into()))?;
     let effect = source.effects.get(index).ok_or_else(|| EngineError::Other("no copied effect".into()))?;
     let def = effect.def().ok_or_else(|| EngineError::Other("unknown copied effect".into()))?;
     let audio = def.kind == EffectKind::Audio;
@@ -42,6 +42,7 @@ pub(crate) fn paste(s: &mut Session, p: &Value) -> Result<Value> {
     if targets.iter().any(|c| q.find_item(*c).and_then(|(tid, _)| q.track(tid)).is_some_and(|t| t.locked)) {
         return Err(EngineError::Other("destination track is locked".into()));
     }
+    let frame = (q.settings.width, q.settings.height);
     let n = s.edit_sequence("Paste Effect", |q, _, _| {
         let mut count = 0;
         for t in q.all_tracks_mut() {
@@ -49,7 +50,25 @@ pub(crate) fn paste(s: &mut Session, p: &Value) -> Result<Value> {
                 let mut copied = effect.clone();
                 // Keep animation offsets relative to the destination's source in-point.
                 crate::clip_ops::retime_effect(&mut copied, &source, dst, false);
-                if def.intrinsic
+                if let Some(name) = &param {
+                    let value = copied.params.get(name).ok_or_else(|| EngineError::Other("no such copied parameter".into()))?.clone();
+                    let index = dst.effects.iter().position(|e| e.effect == copied.effect);
+                    if let Some(index) = index {
+                        if let Some(effect) = dst.effects.get_mut(index) {
+                            effect.params.insert(name.clone(), value);
+                        }
+                    } else {
+                        let mut fresh = def.instance();
+                        filmcraft_project::resolve_auto_points(&mut fresh, frame, frame);
+                        fresh.params.insert(name.clone(), value);
+                        let pos = if audio {
+                            dst.effects.len()
+                        } else {
+                            dst.effects.iter().position(|e| e.def().is_some_and(|d| d.intrinsic)).unwrap_or(dst.effects.len())
+                        };
+                        dst.effects.insert(pos, fresh);
+                    }
+                } else if def.intrinsic
                     && let Some(slot) = dst.effects.iter_mut().find(|e| e.effect == copied.effect)
                 {
                     *slot = copied;

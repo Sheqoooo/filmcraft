@@ -193,6 +193,14 @@ pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params:
                     })
                 })
         });
+    if id == "edit.copy" && app.ui.focused == PanelKind::EffectControls && params.as_object().is_none_or(|m| m.is_empty()) && !effect_copy {
+        app.session.state.clipboard.clear();
+        app.session.state.clipboard_markers.clear();
+        app.session.state.effect_clipboard = None;
+        let error = "select an effect or parameter in Effect Controls first".to_owned();
+        app.ui.status = error.clone();
+        return Err(error);
+    }
     let id = if effect_copy { "effects.copy" } else { id };
     if id == "edit.selectAll" && (crate::panels::graphics::select_all_edited_text(app) || crate::panels::effect_controls::select_all_keyframes(app)) {
         return Ok(Value::Null);
@@ -610,6 +618,21 @@ pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params:
     if let Err(e) = &r {
         app.ui.status = e.clone();
     }
+    if id == "effects.copy" {
+        if r.is_err() {
+            app.session.state.clipboard.clear();
+            app.session.state.clipboard_markers.clear();
+            app.session.state.effect_clipboard = None;
+        } else if let Some((source, index, param)) = &app.session.state.effect_clipboard
+            && let Some(effect) = source.effects.get(*index)
+        {
+            let name = effect.def().map(|d| d.name).unwrap_or(&effect.effect);
+            let detail = param.as_deref().and_then(|id| effect.def().and_then(|d| d.params.iter().find(|p| p.id == id))).map(|p| crate::i18n::t(p.label));
+            let label = detail.map_or_else(|| crate::i18n::t(name).to_owned(), |param| format!("{} › {param}", crate::i18n::t(name)));
+            let message = format!("{}: {label}", tl!("Copy"));
+            app.ui.status = message;
+        }
+    }
     if r.is_ok() && matches!(id, "playhead.start" | "playhead.end") {
         crate::panels::timeline::reveal_playhead(app, ctx);
     }
@@ -645,10 +668,10 @@ fn clipboard_media_key(media: &crate::ClipboardMedia) -> String {
 /// clip names there, like other editors put their own data on the clipboard, so Ctrl+V pastes the
 /// clips right after a copy.
 fn put_clip_names_on_system_clipboard(app: &FilmcraftApp, ctx: &egui::Context) {
-    if let Some((source, index)) = &app.session.state.effect_clipboard
+    if let Some((source, index, param)) = &app.session.state.effect_clipboard
         && let Some(effect) = source.effects.get(*index)
     {
-        ctx.copy_text(effect.def().map(|d| d.name).unwrap_or(&effect.effect).to_owned());
+        ctx.copy_text(param.as_deref().unwrap_or_else(|| effect.def().map(|d| d.name).unwrap_or(&effect.effect)).to_owned());
         return;
     }
     let names: Vec<&str> = app.session.state.clipboard.iter().map(|(_, _, c)| c.name.as_str()).collect();

@@ -90,3 +90,27 @@ Scoped engine/UI Clippy with warnings denied, formatting, the native ARM64 devel
 strict bundle signature verification passed. No running app was closed or user project edited.
 The earlier workspace-wide export-test failure and incomplete wasm gate remain as described above;
 these unrelated full gates were not rerun for this change.
+
+## Motion / parameter clipboard follow-up (2026-10-22)
+
+The user reported clip duplication after restarting the previous build. An additional German
+Motion-header test using the macOS command inbox passed even before this follow-up, so the reported
+runtime failure was not reproduced headlessly. Effect/parameter clicks now explicitly focus
+Effect Controls. Copy there refuses an absent/stale selection and clears old internal clip data
+instead of silently falling back to copying a clip. Successful effect/parameter Copy names its
+content in the status bar.
+
+Parameter labels now select individual parameters. Copy/Paste transfers that parameter and its
+animation while retaining other target settings. Motion and other intrinsic effects are updated
+in place; a missing standard effect is initialized with defaults. Invalid parameter selection
+leaves the existing selection unchanged. The Program transform-handle regression now expects the
+more precise parameter selection while retaining its complete gesture/keyframe/undo checks.
+
+Validation: 35 engine clip-operation tests and 34 UI tests (21 keyframe/clipboard workflow,
+6 OS clipboard, 7 transform-handle) passed. Scoped engine/UI Clippy with warnings denied, formatting,
+ARM64 developer packaging and strict signature verification passed. A headless rendered image was
+inspected for the selected Scale row. The sandbox GPU adapter was unavailable; the first approved
+GPU test passed outside the sandbox. A further image test was declined and was not retried.
+No user project or running application was changed. Confirmation of the originally reported
+runtime failure on the user's workflow is still needed; the prior workspace export/wasm gate
+limitations remain unchanged.

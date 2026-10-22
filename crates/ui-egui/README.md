@@ -5,10 +5,16 @@ Interactive controls keep stable automation ids regardless of the interface lang
 
 ## Copying one effect
 
-Select an effect header in Effect Controls and use Copy (Cmd/Ctrl+C). Select one or more compatible
+Select an effect header in Effect Controls and use Copy (Cmd/Ctrl+C), or select a parameter's
+label to copy only that parameter. Selecting either explicitly focuses Effect Controls. A brief
+confirmation names the copied effect/parameter. Copy without a valid inspector selection refuses
+the action and clears stale internal clip data, so a subsequent Paste cannot duplicate old clips.
+Select one or more compatible
 clips and Paste (Cmd/Ctrl+V) to apply that effect snapshot, including values, animation, masks and
 enabled state, in one undo step. Animation offsets follow the destination source in-point.
 Standard effects are added; intrinsic effects replace their matching built-in instance.
+A copied parameter replaces only its matching parameter, including animation, preserving the
+other target settings; a missing standard effect is initialized with defaults first.
 Locked destination tracks are refused. Copy in the Timeline still copies whole clips and replaces
 the effect clipboard. `effects.copy` / `effects.paste` expose the same operations to automation.
 `keyframes_ui` covers the Transform keyboard workflow, clip count, values, undo/redo and subsequent

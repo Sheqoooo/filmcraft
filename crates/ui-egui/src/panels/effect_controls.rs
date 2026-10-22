@@ -211,7 +211,8 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                 };
                 let key = format!("{}:{}", clip.0, idx);
                 let open = !app.ui.collapsed_fx.contains(&key);
-                let selected = app.session.state.selected_effect.as_ref().is_some_and(|s| s.clip == clip && s.index(&it.effects) == Some(idx));
+                let selected =
+                    app.session.state.selected_effect.as_ref().is_some_and(|s| s.clip == clip && s.index(&it.effects) == Some(idx) && s.param.is_none());
                 let (r, resp) = bui.allocate_exact_size(vec2(body.width(), ROW_H), Sense::click());
                 if selected {
                     bui.painter().rect_filled(crate::panels::effect_controls::row_fill(r), 0.0, t.row_selected);
@@ -257,6 +258,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                         app.ui.collapsed_fx.retain(|k| *k != key);
                     }
                 } else if resp.clicked() && !fxresp.clicked() && !rresp.clicked() {
+                    app.ui.focused = crate::dock::PanelKind::EffectControls;
                     actions.push(("effects.select".into(), json!({"clip": clip.0, "effect": idx})));
                 }
                 let mut save_preset = false;
@@ -557,11 +559,12 @@ pub(crate) fn param_row(
         v
     };
     let (r, row) = ui.allocate_exact_size(vec2(body.width(), ROW_H), if mask.is_none() { Sense::click() } else { Sense::hover() });
-    row_line(ui, r, lane, &t);
-    // clicking one of an effect's properties selects the effect, as clicking its header does
-    if row.clicked() {
-        actions.push(("effects.select".into(), json!({"clip": clip.0, "effect": idx})));
+    if mask.is_none()
+        && app.session.state.selected_effect.as_ref().is_some_and(|s| s.clip == clip && s.index(&it.effects) == Some(idx) && s.param.as_deref() == Some(pd.id))
+    {
+        ui.painter().rect_filled(row_fill(r), 0.0, t.row_selected);
     }
+    row_line(ui, r, lane, &t);
     let mut x = r.min.x + 26.0;
     // twirl-down for the value/velocity graphs (animated scalar and point params)
     if param.is_animated() && graphable(&param.value) {
@@ -591,6 +594,16 @@ pub(crate) fn param_row(
     x += 14.0;
     let vx = r.min.x + (r.width() * 0.5).max(150.0);
     row_label(ui, pos2(x, r.center().y), crate::i18n::t(pd.label), vx - 6.0 - x, Tokens::ui(12.0), t.text);
+    if mask.is_none() {
+        let label_rect = Rect::from_min_max(pos2(x, r.min.y), pos2(vx - 6.0, r.max.y));
+        let label = ui.interact(label_rect, egui::Id::new(("param-select", clip.0, idx, pkey)), Sense::click());
+        app.auto.add(&format!("effectControls.{}.{}.label", e.effect, pkey), label_rect, pd.label);
+        if label.clicked() || row.clicked() {
+            app.ui.focused = crate::dock::PanelKind::EffectControls;
+            actions.push(("effects.select".into(), json!({"clip": clip.0, "effect": idx, "param": pd.id})));
+        }
+    }
+
     let value = param.value_at(mt);
     let mut vui = ui.new_child(
         egui::UiBuilder::new()

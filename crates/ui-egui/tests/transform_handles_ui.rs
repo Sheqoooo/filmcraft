@@ -267,11 +267,11 @@ fn a_drag_keys_the_playhead_and_headers_select_while_arrows_twirl() {
     assert_eq!(key0.len(), 1);
     d.exec("playhead.set", json!({"time": mid + filmcraft_time::TICKS_PER_SECOND}));
     d.frames(2);
-    // clicking a property (its name) selects Motion too
+    // Selecting the scale parameter keeps Motion active for the Program handles.
     let (sx, sy) = d.center("effectControls.motion.scale.stopwatch");
     d.ok("ui.click", json!({"x": sx + 30.0, "y": sy}));
     d.frames(2);
-    assert_eq!(d.selected_effect(), json!({"clip": clip, "effect": "motion", "instance": 0}));
+    assert_eq!(d.selected_effect(), json!({"clip": clip, "effect": "motion", "instance": 0, "param": "scale"}));
     let p0 = d.point(clip, "motion", "position");
     let undo = d.undo_len();
     let b = d.rect("program.transform.box");

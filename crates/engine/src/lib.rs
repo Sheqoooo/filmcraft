@@ -244,6 +244,9 @@ pub struct EffectSel {
     pub clip: ClipId,
     pub effect: String,
     pub instance: usize,
+    /// Selected parameter within this effect; None selects the entire effect.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub param: Option<String>,
 }
 
 impl EffectSel {
@@ -251,7 +254,7 @@ impl EffectSel {
     pub fn of(clip: ClipId, effects: &[filmcraft_project::EffectInstance], index: usize) -> Option<Self> {
         let id = &effects.get(index)?.effect;
         let instance = effects.iter().take(index).filter(|e| &e.effect == id).count();
-        Some(Self { clip, effect: id.clone(), instance })
+        Some(Self { clip, effect: id.clone(), instance, param: None })
     }
 
     /// Where the selected effect is in the clip's `effects`.
@@ -296,7 +299,7 @@ pub struct EditorState {
     pub clipboard: Vec<(TrackKind, usize, filmcraft_project::TrackItem)>,
     /// Copied effect snapshot plus source timing; independent of later source edits.
     #[serde(skip)]
-    pub effect_clipboard: Option<(filmcraft_project::TrackItem, usize)>,
+    pub effect_clipboard: Option<(filmcraft_project::TrackItem, usize, Option<String>)>,
     pub default_video_transition: String,
     pub default_audio_transition: String,
     /// Selected edit points (trim mode).

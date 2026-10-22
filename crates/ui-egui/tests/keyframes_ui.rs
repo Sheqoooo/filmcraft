@@ -757,3 +757,74 @@ fn copy_selected_transform_then_paste_on_another_clip() {
     assert!(d.harness.state().session.state.effect_clipboard.is_none());
     assert!(!d.harness.state().session.state.clipboard.is_empty());
 }
+
+#[test]
+fn motion_copy_via_macos_menu_inbox_applies_only_motion() {
+    let (mut d, source) = Driver::demo();
+    d.ok("ui.menu.invoke", json!({"id": "app.language.german"}));
+    let (tx, rx) = channel();
+    d.harness.state_mut().command_inbox = Some(rx);
+    let target = d.exec("sequence.inspect", json!({}))["video"][0]["items"][2]["clip"].as_u64().unwrap();
+    d.exec("effects.setParam", json!({"clip": source.id, "effect": "motion", "param": "scale", "value": 175.0}));
+    d.click("effectControls.effect.motion");
+    tx.send("edit.copy".into()).unwrap();
+    d.frames(3);
+    assert!(d.harness.state().session.state.effect_clipboard.is_some(), "native Copy must pick the selected Bewegung header");
+    assert!(d.harness.state().ui.status.contains("Bewegung"));
+    d.exec("timeline.select", json!({"clips": [target]}));
+    d.ok("ui.set", json!({"focused": "Timeline"}));
+    let count = d.harness.state().session.active_sequence().unwrap().all_tracks().map(|t| t.items.len()).sum::<usize>();
+    tx.send("edit.paste".into()).unwrap();
+    d.frames(3);
+    let q = d.harness.state().session.active_sequence().unwrap();
+    assert_eq!(q.all_tracks().map(|t| t.items.len()).sum::<usize>(), count);
+    assert_eq!(q.find_item(ClipId(target)).unwrap().1.effect("motion").unwrap().param("scale").unwrap().value.as_f64(), Some(175.0));
+}
+
+#[test]
+fn copy_motion_scale_label_pastes_only_scale_via_native_menu() {
+    let (mut d, source) = Driver::demo();
+    let (tx, rx) = channel();
+    d.harness.state_mut().command_inbox = Some(rx);
+    let target = d.exec("sequence.inspect", json!({}))["video"][0]["items"][2]["clip"].as_u64().unwrap();
+    for (clip, scale, rotation) in [(source.id, 175.0, 30.0), (target, 90.0, 10.0)] {
+        d.exec("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "scale", "value": scale}));
+        d.exec("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "rotation", "value": rotation}));
+    }
+    d.click("effectControls.motion.scale.label");
+    assert_eq!(d.harness.state().session.state.selected_effect.as_ref().unwrap().param.as_deref(), Some("scale"));
+    tx.send("edit.copy".into()).unwrap();
+    d.frames(3);
+    assert!(d.harness.state().session.state.clipboard.is_empty());
+    assert!(d.harness.state().ui.status.contains("Motion"));
+    d.shot("copied-motion-scale");
+    d.exec("timeline.select", json!({"clips": [target]}));
+    d.ok("ui.set", json!({"focused": "Timeline"}));
+    let before = d.harness.state().session.project.clone();
+    tx.send("edit.paste".into()).unwrap();
+    d.frames(3);
+    let q = d.harness.state().session.active_sequence().unwrap();
+    let motion = q.find_item(ClipId(target)).unwrap().1.effect("motion").unwrap();
+    assert_eq!(motion.param("scale").unwrap().value.as_f64(), Some(175.0));
+    assert_eq!(motion.param("rotation").unwrap().value.as_f64(), Some(10.0));
+    d.exec("edit.undo", json!({}));
+    assert_eq!(d.harness.state().session.project, before);
+}
+
+#[test]
+fn copy_in_effect_controls_never_falls_back_to_an_old_clip_clipboard() {
+    let (mut d, _) = Driver::demo();
+    let (tx, rx) = channel();
+    d.harness.state_mut().command_inbox = Some(rx);
+    d.exec("edit.copy", json!({}));
+    assert!(!d.harness.state().session.state.clipboard.is_empty());
+    d.exec("effects.select", json!({"none": true}));
+    d.ok("ui.set", json!({"focused": "EffectControls"}));
+    let before = d.harness.state().session.project.clone();
+    tx.send("edit.copy".into()).unwrap();
+    d.frames(3);
+    assert!(d.harness.state().session.state.clipboard.is_empty());
+    tx.send("edit.paste".into()).unwrap();
+    d.frames(3);
+    assert_eq!(d.harness.state().session.project, before);
+}

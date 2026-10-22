@@ -901,7 +901,7 @@ fn a_merge_key_folds_several_parameters_into_one_undo_step() {
 fn selecting_an_effect_replaces_the_mask_selection() {
     let mut s = demo_unlocked();
     let id = v1(&s)[0].0;
-    let motion_sel = Some(EffectSel { clip: ClipId(id), effect: "motion".into(), instance: 0 });
+    let motion_sel = Some(EffectSel { clip: ClipId(id), effect: "motion".into(), instance: 0, param: None });
     s.execute("effects.select", json!({"clip": id, "effect": "motion"})).unwrap();
     assert_eq!(s.state.selected_effect, motion_sel);
     // applying an effect puts it first; Motion stays the selected effect

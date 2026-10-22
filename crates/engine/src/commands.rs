@@ -3016,7 +3016,7 @@ fn build() -> Vec<CommandSpec> {
             label: "Select Effect",
             menu: &[],
             shortcut: None,
-            params: r#"{"clip":id,"effect":index|id}|{"none":true}"#,
+            params: r#"{"clip":id,"effect":index|id,"param":string?}|{"none":true}"#,
             enabled: has_seq,
             run: select_effect,
             journal: false,
@@ -3983,7 +3983,16 @@ fn select_effect(s: &mut Session, p: &Value) -> Result<Value> {
         _ => None,
     }
     .ok_or_else(|| bad(CMD, "no such effect on clip"))?;
-    s.state.selected_effect = crate::EffectSel::of(clip, &it.effects, effect);
+    let param = match p.get("param") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(id)) if it.effects.get(effect).is_some_and(|e| e.params.contains_key(id)) => Some(id.clone()),
+        _ => return Err(bad(CMD, "no such parameter on effect")),
+    };
+    let mut selected = crate::EffectSel::of(clip, &it.effects, effect);
+    if let Some(sel) = &mut selected {
+        sel.param = param;
+    }
+    s.state.selected_effect = selected;
     s.state.selected_mask = None;
     Ok(Value::Null)
 }

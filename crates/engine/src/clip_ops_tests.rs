@@ -1175,3 +1175,34 @@ fn copied_audio_effect_targets_the_linked_audio_of_a_selected_video() {
     assert_eq!(f64_param(&clip(&s, dst), "volume", "level"), -6.0);
     assert_eq!(clip(&s, b.id.0), before_video);
 }
+
+#[test]
+fn copied_parameter_preserves_other_settings_and_retimes_keys() {
+    let mut s = demo();
+    let (a, b) = (v1(&s)[0].clone(), v1(&s)[2].clone());
+    s.execute("effects.setParam", json!({"clip": b.id.0, "effect": "motion", "param": "rotation", "value": 25.0})).unwrap();
+    let mut project = (*s.project).clone();
+    let src = project.sequence_mut(s.state.active_sequence.unwrap()).unwrap().find_item_mut(a.id).unwrap().1;
+    let scale = src.effect_mut("motion").unwrap().param_mut("scale").unwrap();
+    scale.put_keyframe(a.source_in, filmcraft_project::ParamValue::Float(150.0));
+    scale.put_keyframe(a.source_in + Tick(1000), filmcraft_project::ParamValue::Float(180.0));
+    s.project = std::sync::Arc::new(project);
+    s.execute("effects.select", json!({"clip": a.id.0, "effect": "motion", "param": "scale"})).unwrap();
+    let selected = s.state.selected_effect.clone();
+    for param in [json!("missing"), json!(u64::MAX), json!(["scale"])] {
+        assert!(s.execute("effects.select", json!({"clip": a.id.0, "effect": "motion", "param": param})).is_err());
+        assert_eq!(s.state.selected_effect, selected);
+    }
+    s.execute("effects.copy", json!({})).unwrap();
+    let before = s.project.clone();
+    s.execute("effects.paste", json!({"clips": [b.id.0]})).unwrap();
+    let dst = clip(&s, b.id.0);
+    assert_eq!(f64_param(&dst, "motion", "rotation"), 25.0);
+    let keys = &dst.effect("motion").unwrap().param("scale").unwrap().keyframes;
+    assert_eq!(keys[0].time, b.source_in);
+    assert_eq!(keys[1].time, b.source_in + Tick(1000));
+    assert_eq!(keys[0].value.as_f64(), Some(150.0));
+    assert_eq!(dst.effects.len(), b.effects.len());
+    s.undo().unwrap();
+    assert_eq!(s.project, before);
+}
