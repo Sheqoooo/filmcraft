@@ -169,3 +169,35 @@ preview/undo behavior using the new Option/Alt modifier. UI Clippy with warnings
 formatting, native ARM64 developer packaging and strict bundle signature verification passed.
 No running app or user project was manipulated. Prior workspace-wide export/wasm gate limitations
 remain documented and were not rerun for this UI-only change.
+
+## Save-linked EffectCraft clips (2026-10-22)
+
+`clip.editInEffectCraft` prepares one normal-speed video file clip, opens its own EffectCraft
+project, and keeps the same timeline clip attached to a generated ProRes 4444 sidecar. Original
+footage and timeline audio remain unchanged. Saved EffectCraft project stamps trigger a background
+CPU render through the pinned upstream EffectCraft CLI 0.14.0. Complete, readable output is
+published atomically; a failed render retains the previous movie. A matching sidecar manifest is
+required before publishing. Concurrent clip/project edits reject initial attachment. Automatic
+position sentinels are compared by their persisted representation, avoiding NaN self-inequality.
+`effectcraft.refresh` invalidates the linked media and render revision even without a prior generic
+file stamp, preventing overlapping file scans from leaving the old picture cached.
+
+Validation: 5 engine tests cover malformed inputs, changed/locked targets, unsupported speed,
+short output, automatic effect points, preserved timing/audio/metadata, undo/redo and explicit
+refresh without creating an edit. Native worker tests cover invalid ownership/oversized manifests,
+contained worker panics and visible menu errors. The explicitly enabled real-CLI roundtrip test
+creates a procedural movie with FilmCraft's own encoder, prepares/attaches it, saves an actual
+EffectCraft opacity change through EffectCraft's engine, and checks both output bytes and the
+picture rendered by FilmCraft change. It then corrupts the saved EffectCraft project and confirms
+the last good output and original source remain intact, no second application launch occurs, and
+undo restores the original clip. The opening hook is a test recorder: no user app/project is touched.
+The CLI-dependent test stays opt-in in ordinary test runs, and was explicitly run locally.
+
+The 11 scoped menu/translation coverage tests pass. Scoped engine/UI Clippy with warnings denied,
+formatting, layer and asset gates, shell syntax, the pinned-helper extraction/signature/version
+check, native ARM64 developer packaging and strict bundle signatures pass. The helper archive is
+SHA-256 verified; MIT/Apache licence files ship in the app. Full workspace export/wasm limitations
+noted earlier remain unresolved; the full workspace gate was not rerun for this development snapshot.
+No interactive GUI or external GPU screenshot test was run. This validates a synthetic roundtrip,
+not every effect or media format supported by EffectCraft. See docs/effectcraft.md for current
+workflow limits, absolute paths, unchanged audio and normal-speed-only selection support.

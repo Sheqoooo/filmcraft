@@ -3,6 +3,15 @@
 The egui frontend draws panels and dialogs, and dispatches project changes through the engine.
 Interactive controls keep stable automation ids regardless of the interface language.
 
+## Save-linked EffectCraft clips
+
+The native Clip menu/context action `clip.editInEffectCraft` prepares one video clip on a worker,
+attaches its ProRes sidecar with the undoable engine `effectcraft.attach` command, then opens the
+EffectCraft project through the host hook. Saved project stamps trigger background rendering;
+only verified complete renders replace the owned movie. `effectcraft.refresh` refreshes the
+timeline without requiring the general growing-files preference. Threads report failures and
+preserve the last good render. See [workflow and limitations](../../docs/effectcraft.md).
+
 ## Shared monitor tabs follow playback
 
 When Source and Program share one tab group, starting sequence playback reveals Program;

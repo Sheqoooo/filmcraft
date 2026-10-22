@@ -67,6 +67,8 @@ sed -e "s/@VERSION@/$VERSION-dev/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
 cp "$DEV_ROOT/LICENSE-MIT" "$DEV_ROOT/LICENSE-APACHE" "$DEV_ROOT/NOTICE" "$DEV_ROOT/ATTRIBUTION.md" "$APP/Contents/Resources/"
 cp "$DEV_ROOT/assets/app-icon/LICENSE.txt" "$APP/Contents/Resources/AppIcon-LICENSE.txt"
 copy_font_licences "$APP/Contents/Resources"
+. "$DEV_ROOT/packaging/macos/dev/effectcraft-tools.sh"
+install_effectcraft_helper "$APP"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 printf 'Commit: %s\nBuilt: %s\nProfile: dev-app\nTarget: aarch64-apple-darwin\n' \
   "$FILMCRAFT_BUILD_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$APP/Contents/Resources/DeveloperBuild.txt"

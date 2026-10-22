@@ -43,6 +43,17 @@ Release-Linkens mit LTO. Die optionalen Whisper-/Kokoro-Funktionen sind wie im v
 macOS-Packaging nicht eingeschaltet. System- und gebündelte Schriften funktionieren ohne den
 optionalen separaten craft-fonts-Checkout. FFmpeg wird weder benötigt noch eingebaut.
 
+## Clip in EffectCraft bearbeiten
+
+Rechtsklick auf einen Video-Clip → **EffectCraft…**. Nach der Vorbereitung öffnet sich EffectCraft.
+Dort **⌘S** speichern: FilmCraft rendert im Hintergrund und aktualisiert denselben Timeline-Clip.
+Das FilmCraft-Projekt vorher speichern und die installierte EffectCraft-App behalten.
+[Anleitung, Dateiverwaltung und Grenzen](../../../docs/effectcraft.md).
+
+Der Dev-Builder lädt zusätzlich einmalig den offiziellen EffectCraft-CLI-Helfer 0.14.0 (rund 60 MB),
+prüft die festgeschriebene SHA-256 und bündelt ihn samt MIT-/Apache-Lizenzen. Auch die GitHub-
+Entwicklungs-Builds enthalten den Helfer; die EffectCraft-Oberfläche wird separat installiert.
+
 ## Daten und Rückkehr zur vorigen Version
 
 Die Entwicklerversion hat die Bundle-ID `com.sheqoooo.filmcraft.dev` und verwendet standardmäßig

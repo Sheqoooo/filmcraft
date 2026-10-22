@@ -39,6 +39,8 @@ pub mod credits;
 pub mod dock;
 mod dock_shared;
 mod dock_ui;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod effectcraft;
 /// Thumbnail textures kept before the least recently used are freed (each is up to 320 px wide).
 const MAX_THUMB_TEXTURES: usize = 512;
 
@@ -281,6 +283,8 @@ pub struct FilmcraftApp {
     pub frames: Arc<FrameServer>,
     pub playback: Playback,
     pub source_playback: source_playback::SourcePlayback,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub effectcraft: effectcraft::State,
     pub audio: Option<Box<dyn AudioOut>>,
     /// Audio during scrubbing (#211).
     pub scrub: scrub::ScrubAudio,
@@ -550,6 +554,8 @@ impl FilmcraftApp {
             frames,
             playback: Playback { speed: 1.0, ..Default::default() },
             source_playback: Default::default(),
+            #[cfg(not(target_arch = "wasm32"))]
+            effectcraft: Default::default(),
             audio: None,
             scrub: Default::default(),
             hooks: HostHooks::default(),
@@ -1800,6 +1806,8 @@ impl FilmcraftApp {
         self.apply_prefs(&ctx);
         #[cfg(not(target_arch = "wasm32"))]
         self.tick_media_refresh(&ctx);
+        #[cfg(not(target_arch = "wasm32"))]
+        effectcraft::tick(self, &ctx);
         for ev in self.session.drain_events() {
             match ev {
                 filmcraft_engine::Event::OpenSequence(_) => {

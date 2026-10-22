@@ -26,6 +26,14 @@ Siehe [Mac-Anleitung](packaging/macos/dev/README.md) und
 [Prüfergebnisse und bekannte Einschränkungen](packaging/macos/dev/VALIDATION.md).
 Dies sind Entwicklungsstände; die Übersicht ersetzt keine Freigabe als stabile Version.
 
+### Neu: Clip in EffectCraft bearbeiten
+
+Rechtsklick auf einen Video-Clip → **EffectCraft…**. Nach der Vorbereitung öffnet sich das
+zugehörige EffectCraft-Projekt. Dort **⌘S** speichern: FilmCraft rendert im Hintergrund und
+aktualisiert denselben Timeline-Clip. Position und Länge bleiben erhalten; Originaldatei und
+Audiospur bleiben unverändert. Benötigt die neue **FilmCraft Dev**-App und eine installierte
+EffectCraft-App. [Anleitung und Grenzen dieser ersten Version](docs/effectcraft.md).
+
 ---
 
 <p align="center">

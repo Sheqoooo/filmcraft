@@ -179,6 +179,22 @@ pub fn targets_source(app: &FilmcraftApp, params: &Value) -> bool {
 
 /// Execute a UI or engine command by id.
 pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params: Value) -> Result<Value, String> {
+    if id == "clip.editInEffectCraft" {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let result = crate::effectcraft::invoke(app, ctx, params);
+            if let Err(e) = &result {
+                app.ui.status = e.clone();
+            }
+            return result;
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let error = "EffectCraft linking requires the desktop app".to_owned();
+            app.ui.status = error.clone();
+            return Err(error);
+        }
+    }
     // Effect selection only owns Copy while its panel is active. A stale effect selection must
     // never hijack a later Timeline Copy. Paste follows the last internal copy's content.
     let effect_copy = id == "edit.copy"
