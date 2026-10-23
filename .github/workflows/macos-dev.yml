@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish this build as a downloadable development prerelease"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,6 +20,8 @@ concurrency:
 jobs:
   build:
     if: github.repository == 'Sheqoooo/filmcraft'
+    permissions:
+      contents: write # Required for the explicitly requested development prerelease below.
     runs-on: macos-14
     timeout-minutes: 45
     steps:
@@ -49,3 +56,38 @@ jobs:
             dist/dev/FilmCraft-Dev-macos-arm64.zip.sha256
           if-no-files-found: error
           retention-days: 7
+      - name: Publish requested development prerelease
+        if: inputs.publish_release == true || startsWith(github.event.head_commit.message, 'DEV.RELEASE:')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="dev-${GITHUB_SHA:0:12}"
+          cd dist/dev
+          shasum -a 256 -c FilmCraft-Dev-macos-arm64.zip.sha256
+          cat > release-notes.md <<NOTES
+          Development snapshot of the independent Sheqoooo/filmcraft fork, including our timeline, monitor and EffectCraft changes.
+
+          ## Download and install
+          - Download **FilmCraft-Dev-macos-arm64.zip** below and extract it.
+          - Move **FilmCraft Dev.app** to Applications and open it.
+          - Requires an **Apple Silicon Mac (M1 or newer)**. This download does not support Intel Macs or Windows.
+          - The app is ad-hoc signed, without Apple notarization. If macOS blocks it, allow this app in **System Settings → Privacy & Security**, then open it again.
+          - No Rust installation, source checkout or terminal commands are needed.
+          - The EffectCraft command-line helper is bundled; its graphical editor must be installed separately to use that integration.
+
+          ## Development status and validation
+          This is an experimental development build, not a stable release. Save projects before trying it. It uses separate FilmCraft Dev settings and recovery data.
+
+          The workflow compiled the ARM64 app, verified its bundle signature and version command, and generated the SHA-256 checksum attached below. A complete workspace test suite and an interactive GUI acceptance run are not part of this workflow; previously documented export/wasm limitations remain.
+
+          Source commit: ${GITHUB_SHA}
+          Build: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          NOTES
+          gh release create "$TAG" \
+            FilmCraft-Dev-macos-arm64.zip FilmCraft-Dev-macos-arm64.zip.sha256 \
+            --target "$GITHUB_SHA" --title "FilmCraft Dev · ${GITHUB_SHA:0:12} · macOS Apple Silicon" \
+            --notes-file release-notes.md --prerelease --latest=false --draft
+          gh release edit "$TAG" --draft=false
