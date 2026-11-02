@@ -6,13 +6,19 @@ und Änderungen über **FilmCraft aktualisieren.app** übernehmen.
 [Anleitung und Build-Details](packaging/macos/dev/README.md).
 Das normale FilmCraft kann unabhängig davon geöffnet bleiben.
 
+Dieser unabhängige Fork wurde als **Experiment** genutzt, um bestehende Funktionen zu reparieren
+und neue Funktionen dazuzupatchen. Die [vollständige Änderungsübersicht](docs/fork-experiment.md)
+beschreibt die Anpassungen, den Upstream-Abgleich und die bekannten Grenzen.
+
 ## Unsere bisherigen Fehlerbehebungen
 
-Stand: **22. Oktober 2026**. Diese Änderungen sind im Entwicklungs-Fork **Sheqoooo/filmcraft** enthalten.
+Stand der Dokumentation: **30. Oktober 2026**. Diese Änderungen sind im experimentellen
+Entwicklungs-Fork **Sheqoooo/filmcraft** enthalten; aktuelle Update-Prüfungen stehen im
+[Validierungsprotokoll](packaging/macos/dev/VALIDATION.md).
 
 | Bereich | Behobenes Problem und neues Verhalten |
 | --- | --- |
-| **Clips verknüpfen** | Das Kontextmenü zeigt passend zur Auswahl **Verknüpfen** oder **Verknüpfung aufheben** an. Zuvor stand dort auch bei unverknüpften Clips immer „Verknüpfung aufheben“. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/020080486812cba67e534b91de62d6545ac26323) |
+| **Clips verknüpfen** | Die frühere lokale Menü-Korrektur ist durch Upstream #2011 ersetzt. Menü und Befehl stimmen jetzt auch bei gemischter Auswahl überein: Sobald ein ausgewählter Clip verknüpft ist, wird **Verknüpfung aufheben** angeboten und ausgeführt. [Ursprüngliche Anpassung](https://github.com/Sheqoooo/filmcraft/commit/020080486812cba67e534b91de62d6545ac26323), [Upstream-Fix](https://github.com/storytold/filmcraft/pull/2011) |
 | **Effekte kopieren und einfügen** | In den Effekteinstellungen einen Effekt wie **Bewegung** oder **Transform** markieren, mit **⌘C** kopieren und mit **⌘V** auf den ausgewählten Zielclip übertragen. Dabei werden die Einstellungen samt Animation übernommen; es wird kein zusätzlicher Clip in die Timeline eingefügt. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/fc4c184a83e4d019926e311675620b1b97c2bc82) |
 | **Einzelne Effektparameter kopieren** | Auch einzelne Parameter lassen sich übertragen: das **Parameterlabel** wie „Skalieren“ oder „Position“ anklicken und kopieren. Die übrigen Einstellungen des Zielclips bleiben erhalten. Die Kopierfunktion wurde außerdem gegen veraltete Clip-Auswahlen abgesichert. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/464ab35abc411028cf8b0d50198aacdb6cbea735) |
 | **In-/Out-Punkte mit der Maus verschieben** | Der graue Bereich in der Timeline besitzt sichtbare Griffe für In und Out. Sie lassen sich mit der linken Maustaste ziehen und rasten bei aktivem **Snapping (S)** unter anderem an Clipkanten ein. Die Änderung lässt sich rückgängig machen; **Esc** bricht das Ziehen ab. [Änderung](https://github.com/Sheqoooo/filmcraft/commit/931a55763328c44b179a68b57eb37959704dca2a) |
@@ -25,6 +31,12 @@ und automatische **macOS-ARM64-Entwicklungs-Builds** über GitHub Actions.
 Siehe [Mac-Anleitung](packaging/macos/dev/README.md) und
 [Prüfergebnisse und bekannte Einschränkungen](packaging/macos/dev/VALIDATION.md).
 Dies sind Entwicklungsstände; die Übersicht ersetzt keine Freigabe als stabile Version.
+
+Beim Upstream-Abgleich vom 30. Oktober wurde die frühere Link-/Unlink-Anpassung ersetzt:
+Upstream hat das zugrunde liegende Problem inzwischen selbst behoben. Für gemischte Auswahlen
+gilt nun einheitlich **Verknüpfung aufheben**, sobald ein ausgewählter Clip verknüpft ist.
+Siehe [Änderung #2011](https://github.com/storytold/filmcraft/pull/2011) und
+[Vergleich unserer Fixes mit Upstream](docs/fork-experiment.md).
 
 ### Neu: Clip in EffectCraft bearbeiten
 
@@ -47,10 +59,13 @@ Benötigt **FilmCraft Dev** und eine installierte EffectCraft-App.
 </p>
 
 <p align="center">
-  <a href="#license-and-credits"><img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%7C%20Apache--2.0-8b5cf6"></a>
-  <img alt="Written in pure Rust" src="https://img.shields.io/badge/pure-Rust-6a3fd6?logo=rust&logoColor=white">
-  <img alt="Runs on macOS, Windows and Linux" src="https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows%20%7C%20Linux-8b5cf6">
-  <a href="#status"><img alt="Status: young and moving fast" src="https://img.shields.io/badge/status-young%20and%20moving%20fast-6a3fd6"></a>
+  <a href="#license-and-credits"><img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%7C%20Apache--2.0-8b5cf6?style=flat-square"></a>
+  <img alt="Written in pure Rust" src="https://img.shields.io/badge/pure-Rust-6a3fd6?style=flat-square&logo=rust&logoColor=white">
+  <img alt="Runs on macOS, Windows and Linux" src="https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows%20%7C%20Linux-8b5cf6?style=flat-square">
+  <a href="#status"><img alt="Status: young and moving fast" src="https://img.shields.io/badge/status-young%20and%20moving%20fast-6a3fd6?style=flat-square"></a>
+  <br>
+  <a href="https://sonarcloud.io/project/overview?id=storytold_filmcraft"><img alt="Scanned by SonarCloud" src="https://img.shields.io/badge/Scanned_by-SonarCloud-4b9fd5?style=flat-square&logo=sonarqubecloud&logoColor=white"></a>
+  <a href="https://coderabbit.ai"><img alt="Reviewed by CodeRabbit" src="https://img.shields.io/coderabbit/prs/github/storytold/filmcraft?style=flat-square&label=Reviewed%20by%20CodeRabbit&logo=coderabbit"></a>
 </p>
 
 <p align="center">
@@ -212,7 +227,7 @@ No FFmpeg inside. The video codecs, AAC, Opus and the containers are our own Rus
 | **MP4 / MOV** | ✓ | ✓ | Fragmented MP4, edit lists, timecode tracks |
 | **Matroska / WebM** | ✓ | | Lacing, Cues, header stripping, HDR colour metadata |
 | **AVI** | ✓ | | AVI 1.0 and OpenDML (files past 1 GB); Motion JPEG, H.264, HEVC and uncompressed RGB / YUV with PCM, MP3, MP2 or AC-3. DivX / Xvid and DV not yet |
-| **Stills** | ✓ | ✓ | Import PNG, JPEG, GIF, WebP, TIFF and BMP (animated GIF and APNG as clips, with transparency); export PNG sequences and animated GIF |
+| **Stills** | ✓ | ✓ | Import PNG, JPEG, GIF, WebP, TIFF and BMP (animated GIF, APNG and WebP as clips, with transparency); export PNG sequences and animated GIF |
 
 Also imported: MPEG-2 / MPEG-1 video, AC-3, MP2, MXF (OP1a / OP-Atom), MPEG transport and program streams (AVCHD, broadcast, DVD), Ogg and image sequences. Not yet: AV1 export, camera RAW, E-AC-3. Hardware decoding works on macOS (VideoToolbox), Windows (Media Foundation) and, for H.264 and HEVC, Linux (VA-API); H.264 export can use NVIDIA's encoder on Windows and Linux (opt-in), and H.265 (HEVC Main, 8-bit) export works through it (NVENC on Windows, VideoToolbox on macOS) ([#30](https://github.com/storytold/filmcraft/issues/30)).
 

@@ -241,3 +241,79 @@ with warnings denied, formatting and shell syntax passed. Native ARM64 build and
 signatures passed. Finder left a .DS_Store in the temporary stage after the verified app had been
 installed; the builder now retains incidental staging files with a note rather than reporting a
 failed build. No user files are deleted by that cleanup handling.
+
+## Upstream integration and experiment audit (2026-10-30)
+
+This section records new results for the merge of upstream
+`fed0f42fd52012a337d744743a93409c0b1e8f9d` (501 incoming commits) into fork `06115e56`.
+Earlier sections remain historical results for their respective snapshots. See
+[the experiment notes](../../../docs/fork-experiment.md) for behavior, provenance and the
+per-fix upstream audit.
+
+### Integration decisions
+
+- Preserve the fork's development policy and `dev-app` profile alongside upstream's new lints
+  and pinned egui/winit dependency family. Move local hooks into upstream's extracted app,
+  Timeline and engine-helper modules; use the current boxed media and shared docking types.
+- Remove the obsolete DEV.3 menu override: upstream #2011 / `869e4070` changed the engine and
+  menu together to unlink a mixed selection when any selected clip is linked. Existing fork
+  tests now check that rule, selection after unlink, independent pairs and Undo in both languages.
+- Keep shared monitor activation for floating groups and maximized docked groups. Upstream no
+  longer maximizes floating panels; test those valid cases separately.
+- Integrate effect Copy with upstream's caption Copy and Lift/Extract clipboard handling.
+  A new engine regression failed before the integration fix because caption Copy left an old
+  effect clipboard active. Captions, effects and clips now replace each other; rejected inspector
+  Copy also clears old captions. An added native-menu UI regression covers that rejected Copy.
+- New egui enforces texture-delta consumption. Headless EffectCraft tests explicitly clear their
+  unused texture deltas, matching upstream's test harness convention. Production rendering still
+  uploads its deltas; no product error handling or assertion was removed.
+
+### Current checks
+
+- `cargo check -p filmcraft-ui-egui -p filmcraft --all-targets --locked`: passed.
+- `cargo clippy -p filmcraft-engine -p filmcraft-ui-egui -p filmcraft --all-targets --locked -- -D warnings`:
+  passed. Cargo reports upstream's unused optional egui patch entries; there are no Clippy failures.
+- `cargo fmt --check` and `git diff --check`: passed.
+- `cargo xtask layers`: passed. `cargo xtask assets`: passed, 71 assets attributed.
+- `cargo xtask wasm`: passed for 49 crates, including the UI and web app, after allowing the
+  missing dependency downloads. The earlier network-blocked attempt is superseded by this result.
+- `cargo test -p filmcraft-engine --lib --locked`: **761 passed, one failed, three ignored**.
+  This includes all seven EffectCraft engine cases and the new caption/effect clipboard regression.
+- **103 distinct targeted UI integration tests passed**: 23 keyframe/effect controls, 16 Source
+  drag, nine Source playback, eight monitor geometry, one marked playback, four Link/Unlink,
+  23 shared docking, ten OS clipboard, one caption Copy/Paste, four monitor-follow and four
+  Timeline-mark tests. The initially failing Link and floating-maximize expectations were updated
+  to the verified upstream contracts described above, not skipped.
+- **22 UI translation tests passed**, including well-formed catalogs and translated menu coverage.
+- **Five native EffectCraft worker tests passed**, explicitly including the two opt-in CPU CLI
+  roundtrips with the pinned helper: manual apply, last-good-output preservation and old-link
+  migration with local media. No graphical EffectCraft instance was launched.
+- Local Markdown documentation targets were checked and exist.
+
+### Remaining limits
+
+The engine suite fails at `export_tests::every_builtin_preset_exports_and_ffprobe_confirms`,
+APV 422-10: `codec_name` is `null` where the oracle expects `apv`. The exact same test and assertion
+also fail in the separate **unmodified upstream** checkout. The installed external oracle is
+`ffprobe 7.0.2`. This is a baseline-confirmed failure in this environment, not evidence that this
+merge introduced it or that APV exports are correct. The test and its threshold remain intact.
+
+The additional GPU screenshot test could not create an adapter in the sandbox. The requested
+execution with native graphics access was declined, so no new screenshot or visual acceptance is
+claimed. The same effect/parameter test passes without optional GPU rendering. A native app bundle
+was not rebuilt or installed for this update, and no user project or running application was changed.
+The full workspace `cargo xtask ci`, cross-platform acceptance and the earlier CLI VFR workflow
+were not rerun; the old VFR result above is neither newly reproduced nor declared fixed.
+
+Comparison tests on upstream only add test code; product code was verified unchanged. The four
+new-rule Link tests pass there. Three monitor-follow cases, four Timeline-grip cases, two immediate
+scrubbing cases and four effect/parameter Copy cases fail there as expected for missing fork
+behavior. These results decide which patches remain relevant; they are not a claim that all of
+upstream's own tests fail. No upstream pull requests were opened by this audit.
+
+Local logs (temporary, not distributed): `/private/tmp/filmcraft-upstream-engine-tests.log`,
+`filmcraft-upstream-ui-tests.log`, `filmcraft-upstream-final-validation.log`,
+`filmcraft-upstream-effectcraft-final2.log`, `filmcraft-upstream-baseline.log`,
+`filmcraft-upstream-gates.log` and `filmcraft-upstream-wasm-final.log`, all under `/private/tmp/`.
+Intermediate shared-cache comparison attempts were discarded; the recorded comparison and final
+native tests ran sequentially. This remains an experimental development snapshot.
