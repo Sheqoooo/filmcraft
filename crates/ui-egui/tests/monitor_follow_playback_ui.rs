@@ -1,26 +1,31 @@
 //! Shared Source/Program tabs follow the playback target without stealing Timeline keyboard focus.
+use craft_ui::docking::{Floating, Node};
+use craft_ui::layout::{SplitAxis, SplitSize};
 use egui_kittest::Harness;
 use filmcraft_engine::Session;
 use filmcraft_ui_egui::{
     FilmcraftApp,
-    dock::{DockNode, Floating, PanelKind, SplitSize},
+    dock::{Layout, LayoutExt, PanelKind},
     menus,
 };
 use serde_json::json;
 
-fn tabs(panels: Vec<PanelKind>, active: usize) -> DockNode {
-    DockNode::Tabs { panels, active }
+fn tabs(panels: Vec<PanelKind>, active: usize) -> Node<PanelKind> {
+    Node::Tabs { panels, active }
 }
 fn paired() -> FilmcraftApp {
     let mut session = Session::default();
     session.execute("file.openDemoProject", json!({})).unwrap();
     session.execute("source.open", json!({"item":5})).unwrap();
     let mut app = FilmcraftApp::new(session);
-    app.ui.dock = DockNode::Split {
-        vertical: true,
-        size: SplitSize::Ratio(0.6),
-        a: Box::new(tabs(vec![PanelKind::Program, PanelKind::Source], 1)),
-        b: Box::new(tabs(vec![PanelKind::Timeline], 0)),
+    app.ui.dock = Layout {
+        root: Some(Node::Split {
+            axis: SplitAxis::Vertical,
+            size: SplitSize::Ratio(0.6),
+            first: Box::new(tabs(vec![PanelKind::Program, PanelKind::Source], 1)),
+            second: Box::new(tabs(vec![PanelKind::Timeline], 0)),
+        }),
+        floating: vec![],
     };
     app.ui.focused = PanelKind::Timeline;
     app
@@ -60,21 +65,20 @@ fn timeline_space_reveals_program_and_second_space_stops_the_same_player() {
 }
 
 #[test]
-fn floating_and_maximized_shared_monitors_follow_both_playback_targets() {
+fn floating_shared_monitors_follow_both_playback_targets() {
     let mut app = paired();
     let ctx = egui::Context::default();
-    app.ui.dock = tabs(vec![PanelKind::Timeline], 0);
-    app.ui.floating = vec![Floating { panels: vec![PanelKind::Program, PanelKind::Source], active: 1, rect: [30.0, 40.0, 800.0, 450.0] }];
-    app.ui.keys.maximized = Some(PanelKind::Source);
+    app.ui.dock = Layout { root: Some(tabs(vec![PanelKind::Timeline], 0)), floating: vec![] };
+    app.ui.dock.floating = vec![Floating::single(vec![PanelKind::Program, PanelKind::Source], 1, [30.0, 40.0, 800.0, 450.0])];
     menus::invoke(&mut app, &ctx, "playback.forward", json!({"monitor":"program"})).unwrap();
-    assert_eq!(app.ui.floating[0].active, 0);
-    assert_eq!(app.ui.keys.maximized, Some(PanelKind::Program));
+    assert!(app.ui.dock.is_visible(PanelKind::Program));
+    assert_eq!(app.ui.keys.maximized, None, "upstream only maximizes docked panels");
     assert_eq!(app.ui.focused, PanelKind::Timeline);
-    let rect = app.ui.floating[0].rect;
+    let rect = app.ui.dock.floating[0].rect;
     app.play_source().unwrap();
-    assert_eq!(app.ui.floating[0].active, 1);
-    assert_eq!(app.ui.keys.maximized, Some(PanelKind::Source));
-    assert_eq!(app.ui.floating[0].rect, rect);
+    assert!(app.ui.dock.is_visible(PanelKind::Source));
+    assert_eq!(app.ui.keys.maximized, None);
+    assert_eq!(app.ui.dock.floating[0].rect, rect);
     assert!(app.source_playback.clock.playing);
     assert!(!app.playback.playing);
     assert_eq!(app.ui.focused, PanelKind::Timeline);
@@ -83,18 +87,34 @@ fn floating_and_maximized_shared_monitors_follow_both_playback_targets() {
 #[test]
 fn playback_keeps_separate_monitor_groups_and_closed_program_panels_unchanged() {
     let mut app = paired();
-    app.ui.dock = DockNode::Split {
-        vertical: false,
-        size: SplitSize::Ratio(0.5),
-        a: Box::new(tabs(vec![PanelKind::Source, PanelKind::EffectControls], 0)),
-        b: Box::new(tabs(vec![PanelKind::Program, PanelKind::Metadata], 1)),
+    app.ui.dock = Layout {
+        root: Some(Node::Split {
+            axis: SplitAxis::Horizontal,
+            size: SplitSize::Ratio(0.5),
+            first: Box::new(tabs(vec![PanelKind::Source, PanelKind::EffectControls], 0)),
+            second: Box::new(tabs(vec![PanelKind::Program, PanelKind::Metadata], 1)),
+        }),
+        floating: vec![],
     };
     let before = app.ui.dock.clone();
     app.play(1.0);
     assert_eq!(app.ui.dock, before);
     app.stop();
-    app.ui.dock = tabs(vec![PanelKind::Timeline, PanelKind::Source], 0);
+    app.ui.dock = Layout { root: Some(tabs(vec![PanelKind::Timeline, PanelKind::Source], 0)), floating: vec![] };
     let before = app.ui.dock.clone();
     app.play(1.0);
     assert_eq!(app.ui.dock, before);
+}
+
+#[test]
+fn maximized_docked_shared_monitors_follow_both_playback_targets() {
+    let mut app = paired();
+    app.ui.keys.maximized = Some(PanelKind::Source);
+    app.play(1.0);
+    assert!(app.ui.dock.is_visible(PanelKind::Program));
+    assert_eq!(app.ui.keys.maximized, Some(PanelKind::Program));
+    app.play_source().unwrap();
+    assert!(app.ui.dock.is_visible(PanelKind::Source));
+    assert_eq!(app.ui.keys.maximized, Some(PanelKind::Source));
+    assert_eq!(app.ui.focused, PanelKind::Timeline);
 }

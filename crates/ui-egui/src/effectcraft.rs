@@ -48,7 +48,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
     }
     let mut close = false;
     let mut save = false;
-    egui::Window::new("EffectCraft").id(egui::Id::new("effectcraft.job")).collapsible(false).default_width(480.0).show(ctx, |ui| {
+    egui::Window::new("EffectCraft").id(egui::Id::unique("effectcraft.job")).collapsible(false).default_width(480.0).show(ctx, |ui| {
         if let Some(error) = &app.effectcraft.error {
             ui.label(tl!("Error"));
             egui::ScrollArea::vertical().max_height(220.0).show(ui, |ui| {
@@ -461,7 +461,7 @@ mod tests {
         let item = p.add_item(
             "Source",
             Label::Iris,
-            ItemKind::Media(MediaClip {
+            ItemKind::Media(Box::new(MediaClip {
                 media: MediaRef::Generator(Generator::Demo(DemoScene::Aurora)),
                 info: source.info().clone(),
                 interpret: Default::default(),
@@ -471,7 +471,7 @@ mod tests {
                 offline: false,
                 proxy: None,
                 identity: None,
-            }),
+            })),
             None,
         );
         let seq = p.new_sequence("Seq", SequenceSettings { width: 160, height: 90, frame_rate: rate, ..Default::default() }, 1, 1, None);
@@ -541,14 +541,18 @@ mod tests {
         assert!(app.effectcraft.worker.is_none());
         app.ui.show_status_bar = false;
         let ctx = egui::Context::default();
-        let _ = ctx.run_ui(egui::RawInput::default(), |ui| show(&mut app, ui.ctx()));
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| show(&mut app, ui.ctx()));
+        // Headless test: intentionally discard texture updates instead of uploading them.
+        output.textures_delta.clear();
         assert!(app.auto.elements.iter().any(|e| e.id == "effectcraft.job.error"));
         assert!(app.auto.elements.iter().any(|e| e.id == "effectcraft.job.save"));
     }
     fn pump(app: &mut FilmcraftApp, ctx: &egui::Context) {
         let start = Instant::now();
         loop {
-            let _ = ctx.run_ui(egui::RawInput { time: Some(2.0 + start.elapsed().as_secs_f64()), ..Default::default() }, |ui| tick(app, ui.ctx()));
+            let mut output = ctx.run_ui(egui::RawInput { time: Some(2.0 + start.elapsed().as_secs_f64()), ..Default::default() }, |ui| tick(app, ui.ctx()));
+            // Headless test: intentionally discard texture updates instead of uploading them.
+            output.textures_delta.clear();
             if app.effectcraft.worker.is_none() {
                 break;
             }
@@ -572,7 +576,9 @@ mod tests {
         }));
         let ctx = egui::Context::default();
         invoke(&mut app, &ctx, json!({})).unwrap();
-        let _ = ctx.run_ui(egui::RawInput::default(), |ui| show(&mut app, ui.ctx()));
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| show(&mut app, ui.ctx()));
+        // Headless test: intentionally discard texture updates instead of uploading them.
+        output.textures_delta.clear();
         assert!(app.auto.elements.iter().any(|e| e.id == "effectcraft.job.progress"));
         pump(&mut app, &ctx);
         assert_eq!(opened.lock().unwrap().len(), 1, "{}", app.ui.status);

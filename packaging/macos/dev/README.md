@@ -83,9 +83,19 @@ Die Aufbewahrung ist sieben Tage. Das innere ZIP erhält die App-Struktur, Signa
 Ausführungsrechte. Es enthält eine eigenständig startbare App, aber keinen an einen fremden
 Arbeitsordner gebundenen Aktualisierungshelfer.
 
-Der Workflow läuft ausdrücklich nur in `Sheqoooo/filmcraft`, benötigt keine Apple-Zertifikate
-und hat nur Lesezugriff auf den Repository-Inhalt. Er veröffentlicht keine Releases und ändert
-keinen Upstream. Die lokalen Scripts lesen oder schreiben ebenfalls ausschließlich den Fork.
+Der Workflow läuft ausdrücklich nur in `Sheqoooo/filmcraft` und benötigt keine Apple-Zertifikate.
+Ein normaler Build lädt die genannten Artifacts hoch. Beim manuellen Start mit
+`publish_release: true` oder einem Push-Commit, dessen Nachricht mit `DEV.RELEASE:` beginnt,
+veröffentlicht er zusätzlich einen experimentellen **Prerelease** unter `dev-<12 Zeichen der SHA>`.
+Er prüft die ZIP-Prüfsumme, erstellt zunächst einen Entwurf mit ZIP und Prüfsummendatei und
+veröffentlicht ihn anschließend mit Installationshinweisen und Validierungsgrenzen.
+Der Prerelease wird nicht als „Latest“ markiert. Der Build-Job hat dafür `contents: write`;
+die Workflow-Vorgabe bleibt `contents: read`. Ein erneuter Veröffentlichungsversuch für denselben
+Tag schlägt bei bestehendem Release fehl und ersetzt ihn nicht automatisch.
+Die lokalen Scripts und der Workflow ändern keinen Upstream.
+
+Zweck und Änderungen dieses experimentellen Forks stehen in der
+[Änderungsübersicht](../../../docs/fork-experiment.md).
 
 ## Für künftige Code-Arbeit
 

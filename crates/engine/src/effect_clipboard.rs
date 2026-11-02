@@ -15,6 +15,7 @@ pub(crate) fn copy(s: &mut Session, _: &Value) -> Result<Value> {
     s.state.effect_clipboard = Some((source.clone(), index, sel.param.clone()));
     s.state.clipboard.clear();
     s.state.clipboard_markers.clear();
+    s.state.caption_clipboard.clear();
     Ok(json!({"copied": 1}))
 }
 
